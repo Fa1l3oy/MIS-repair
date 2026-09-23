@@ -6,6 +6,11 @@ export type PickedPhoto = { id: string; file: File; url: string };
 
 const MAX_DIMENSION = 1600;
 
+// Not crypto.randomUUID(): it only exists in secure contexts, and phones usually
+// reach a dev/LAN server over plain http://<ip>.
+let photoSeq = 0;
+const nextPhotoId = () => `photo-${Date.now()}-${photoSeq++}`;
+
 /** Downscales large photos to JPEG in the browser so uploads stay small. */
 async function compressImage(file: File): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
@@ -44,15 +49,18 @@ export function PhotoPicker({
   async function addFiles(files: File[]) {
     if (!files.length) return;
     setBusy(true);
-    const compressed = await Promise.all(files.slice(0, max).map(compressImage));
-    const added = compressed.map((file) => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) }));
-    // Functional update: several camera shots may finish compressing concurrently.
-    onChange((prev) => {
-      const next = [...prev, ...added];
-      next.slice(max).forEach((p) => URL.revokeObjectURL(p.url));
-      return next.slice(0, max);
-    });
-    setBusy(false);
+    try {
+      const compressed = await Promise.all(files.slice(0, max).map(compressImage));
+      const added = compressed.map((file) => ({ id: nextPhotoId(), file, url: URL.createObjectURL(file) }));
+      // Functional update: several camera shots may finish compressing concurrently.
+      onChange((prev) => {
+        const next = [...prev, ...added];
+        next.slice(max).forEach((p) => URL.revokeObjectURL(p.url));
+        return next.slice(0, max);
+      });
+    } finally {
+      setBusy(false);
+    }
   }
 
   function remove(id: string) {

@@ -34,6 +34,17 @@ export function flattenErrors(error: z.ZodError): FieldErrors {
   return z.flattenError(error).fieldErrors as FieldErrors;
 }
 
+export const ROLES = ["USER", "MAINTENANCE", "ADMIN"] as const;
+
+export const adminCreateUserSchema = z.object({
+  name: z.string({ error: "กรุณากรอกชื่อ-นามสกุล" }).trim().min(2, "กรุณากรอกชื่อ-นามสกุล").max(100),
+  email: z.email("รูปแบบอีเมลไม่ถูกต้อง").trim().toLowerCase(),
+  phone: z.string().trim().max(20).optional(),
+  department: z.string().trim().max(100).optional(),
+  role: z.enum(ROLES, { error: "กรุณาเลือกสิทธิ์การใช้งาน" }),
+  password: passwordSchema,
+});
+
 export const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
 
 export const createRequestSchema = z.object({

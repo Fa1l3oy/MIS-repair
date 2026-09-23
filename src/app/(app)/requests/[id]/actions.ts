@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { canViewRequest } from "@/lib/requests";
 import { currentUser } from "@/lib/session";
@@ -18,16 +19,19 @@ export async function cancelRequest(requestId: string, reason: string): Promise<
   const user = await currentUser();
   if (!user) return { ok: false, error: "กรุณาเข้าสู่ระบบใหม่อีกครั้ง" };
 
+  const parsedReason = z.string().trim().max(500, "เหตุผลยาวเกินไป").safeParse(reason);
+  if (!parsedReason.success) return { ok: false, error: parsedReason.error.issues[0].message };
+  const message = parsedReason.data || null;
+
   const request = await prisma.repairRequest.findUnique({
     where: { id: requestId },
-    select: { reporterId: true, status: true },
+    select: { reporterId: true, assigneeId: true, status: true, code: true, equipment: true },
   });
   if (!request || request.reporterId !== user.id) return { ok: false, error: "ไม่พบใบแจ้งซ่อม" };
   if (!CANCELLABLE_STATUSES.includes(request.status)) {
     return { ok: false, error: "ไม่สามารถยกเลิกได้ เนื่องจากช่างเริ่มดำเนินการแล้ว" };
   }
 
-  const message = z.string().trim().max(500).parse(reason) || null;
   // Guard on status in the WHERE so a concurrent staff update isn't overwritten.
   const updated = await prisma.repairRequest.updateMany({
     where: { id: requestId, status: { in: CANCELLABLE_STATUSES } },
@@ -45,6 +49,15 @@ export async function cancelRequest(requestId: string, reason: string): Promise<
       message: message ? `เหตุผล: ${message}` : null,
     },
   });
+  await notifyUsers(
+    [request.assigneeId],
+    {
+      title: `ผู้แจ้งยกเลิกงาน ${request.code}`,
+      message: `"${request.equipment}" ถูกยกเลิกโดย ${user.name}${message ? ` — ${message}` : ""}`,
+      link: `/requests/${requestId}`,
+    },
+    user.id,
+  );
   revalidateRequest(requestId);
   return { ok: true, message: "ยกเลิกใบแจ้งซ่อมแล้ว" };
 }
@@ -58,12 +71,21 @@ export async function addComment(requestId: string, text: string): Promise<Actio
   const parsed = commentSchema.safeParse(text);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
 
-  const request = await prisma.repairRequest.findUnique({ where: { id: requestId }, select: { reporterId: true } });
+  const request = await prisma.repairRequest.findUnique({
+    where: { id: requestId },
+    select: { reporterId: true, assigneeId: true, code: true },
+  });
   if (!request || !canViewRequest(user, request)) return { ok: false, error: "ไม่พบใบแจ้งซ่อม" };
 
   await prisma.requestActivity.create({
     data: { requestId, actorId: user.id, type: "COMMENT", message: parsed.data },
   });
+  const preview = parsed.data.length > 80 ? `${parsed.data.slice(0, 80)}…` : parsed.data;
+  await notifyUsers(
+    [request.reporterId, request.assigneeId],
+    { title: `💬 ข้อความใหม่ใน ${request.code}`, message: `${user.name}: ${preview}`, link: `/requests/${requestId}` },
+    user.id,
+  );
   revalidateRequest(requestId);
   return { ok: true };
 }
@@ -95,6 +117,19 @@ export async function rateRequest(requestId: string, input: { rating: number; fe
       message: `${"★".repeat(rating)}${"☆".repeat(5 - rating)} (${rating}/5)${feedback ? `\n${feedback}` : ""}`,
     },
   });
+  const request = await prisma.repairRequest.findUnique({
+    where: { id: requestId },
+    select: { assigneeId: true, code: true },
+  });
+  await notifyUsers(
+    [request?.assigneeId],
+    {
+      title: `⭐ ผู้แจ้งประเมินงาน ${request?.code}: ${rating}/5`,
+      message: feedback || "ไม่มีข้อเสนอแนะเพิ่มเติม",
+      link: `/requests/${requestId}`,
+    },
+    user.id,
+  );
   revalidateRequest(requestId);
   return { ok: true, message: "ขอบคุณสำหรับการประเมิน" };
 }

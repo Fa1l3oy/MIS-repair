@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { Session } from "next-auth";
 import { ROLE_LABEL, ROLE_STYLE } from "@/lib/labels";
+import { prisma } from "@/lib/prisma";
 import { NavLinks, type NavItem } from "./nav-links";
+import { NotificationBell } from "./notification-bell";
 import { SignOutButton } from "./sign-out-button";
 
 function navFor(role: Session["user"]["role"]): NavItem[] {
@@ -20,8 +22,9 @@ function navFor(role: Session["user"]["role"]): NavItem[] {
   return items;
 }
 
-export function AppHeader({ user }: { user: Session["user"] }) {
+export async function AppHeader({ user }: { user: Session["user"] }) {
   const items = navFor(user.role);
+  const unread = await prisma.notification.count({ where: { userId: user.id, isRead: false } });
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4">
@@ -31,6 +34,7 @@ export function AppHeader({ user }: { user: Session["user"] }) {
         </Link>
         <NavLinks items={items} className="hidden flex-1 items-center gap-1 lg:flex" />
         <div className="ml-auto flex items-center gap-2">
+          <NotificationBell initialCount={unread} />
           <div className="hidden text-right sm:block">
             <p className="text-sm leading-tight font-medium">{user.name}</p>
             <span className={`badge mt-0.5 ${ROLE_STYLE[user.role]}`}>{ROLE_LABEL[user.role]}</span>

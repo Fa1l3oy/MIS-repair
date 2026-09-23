@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { notifyMaintenanceTeam } from "@/lib/notifications";
 import { nextRequestCode } from "@/lib/requests";
 import { currentUser } from "@/lib/session";
 import { deleteImages, getImageFiles, saveImage, UploadError } from "@/lib/uploads";
@@ -73,6 +74,14 @@ export async function createRepairRequest(formData: FormData): Promise<ActionRes
           },
           select: { id: true, code: true },
         });
+        await notifyMaintenanceTeam(
+          {
+            title: `${data.priority === "URGENT" ? "🚨 งานเร่งด่วน" : "🔔 มีงานแจ้งซ่อมใหม่"} ${request.code}`,
+            message: `${data.equipment} — ${data.location} (แจ้งโดย ${user.name})`,
+            link: `/requests/${request.id}`,
+          },
+          user.id,
+        );
         revalidatePath("/requests");
         revalidatePath("/maintenance");
         return { ok: true, data: request };

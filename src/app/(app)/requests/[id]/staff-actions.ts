@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { RequestStatus } from "@/generated/prisma/enums";
 import { CLOSED_STATUSES, STATUS_LABEL } from "@/lib/labels";
+import { notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { currentUser, STAFF_ROLES } from "@/lib/session";
 import { deleteImages, getImageFiles, saveImage, UploadError } from "@/lib/uploads";
@@ -40,6 +41,21 @@ export async function acceptRequest(requestId: string): Promise<ActionResult> {
       message: `ช่างผู้รับผิดชอบ: ${user.name}`,
     },
   });
+  const request = await prisma.repairRequest.findUnique({
+    where: { id: requestId },
+    select: { code: true, equipment: true, reporterId: true },
+  });
+  if (request) {
+    await notifyUsers(
+      [request.reporterId],
+      {
+        title: `ช่างรับเรื่อง ${request.code} แล้ว`,
+        message: `${user.name} รับงาน "${request.equipment}" แล้ว`,
+        link: `/requests/${requestId}`,
+      },
+      user.id,
+    );
+  }
   revalidateRequest(requestId);
   return { ok: true, message: "รับงานเรียบร้อยแล้ว" };
 }
@@ -65,7 +81,7 @@ export async function updateRequestStatus(formData: FormData): Promise<ActionRes
 
   const request = await prisma.repairRequest.findUnique({
     where: { id: requestId },
-    select: { status: true, assigneeId: true },
+    select: { status: true, assigneeId: true, reporterId: true, code: true, equipment: true },
   });
   if (!request) return { ok: false, error: "ไม่พบใบแจ้งซ่อม" };
 
@@ -134,8 +150,18 @@ export async function updateRequestStatus(formData: FormData): Promise<ActionRes
     throw e;
   }
 
+  await notifyUsers(
+    // The reporter, plus the assigned technician when an admin updates their job.
+    [request.reporterId, request.assigneeId],
+    {
+      title: `${request.code}: ${STATUS_LABEL[status]}`,
+      message: `"${request.equipment}" ${status === "COMPLETED" ? "ซ่อมเสร็จเรียบร้อยแล้ว กรุณาประเมินความพึงพอใจ" : `เปลี่ยนสถานะเป็น "${STATUS_LABEL[status]}"`}${note ? ` — ${note}` : ""}`,
+      link: `/requests/${requestId}`,
+    },
+    user.id,
+  );
   revalidateRequest(requestId);
-  return { ok: true, message: `อัปเดตสถานะเป็น "${STATUS_LABEL[status as RequestStatus]}" แล้ว` };
+  return { ok: true, message: `อัปเดตสถานะเป็น "${STATUS_LABEL[status]}" แล้ว` };
 }
 
 /** Admin assigns (or re-assigns) a job to a technician. */
@@ -144,7 +170,10 @@ export async function assignRequest(requestId: string, assigneeId: string): Prom
   if (!user) return { ok: false, error: "เฉพาะผู้ดูแลระบบเท่านั้นที่มอบหมายงานได้" };
 
   const [request, assignee] = await Promise.all([
-    prisma.repairRequest.findUnique({ where: { id: requestId }, select: { status: true, assigneeId: true } }),
+    prisma.repairRequest.findUnique({
+      where: { id: requestId },
+      select: { status: true, assigneeId: true, reporterId: true, code: true, equipment: true },
+    }),
     prisma.user.findFirst({
       where: { id: assigneeId, isActive: true, role: { in: STAFF_ROLES } },
       select: { id: true, name: true },
@@ -174,6 +203,24 @@ export async function assignRequest(requestId: string, assigneeId: string): Prom
       message: `มอบหมายงานให้ ${assignee.name}`,
     },
   });
+  const link = `/requests/${requestId}`;
+  await Promise.all([
+    notifyUsers(
+      [assignee.id],
+      { title: `👷 คุณได้รับมอบหมายงาน ${request.code}`, message: `"${request.equipment}" มอบหมายโดย ${user.name}`, link },
+      user.id,
+    ),
+    notifyUsers(
+      [request.assigneeId],
+      { title: `งาน ${request.code} ถูกโอนให้ช่างท่านอื่น`, message: `ผู้ดูแลระบบมอบหมายงานนี้ให้ ${assignee.name}`, link },
+      user.id,
+    ),
+    notifyUsers(
+      [request.reporterId],
+      { title: `${request.code}: มีช่างผู้รับผิดชอบแล้ว`, message: `${assignee.name} จะดำเนินการ "${request.equipment}"`, link },
+      user.id,
+    ),
+  ]);
   revalidateRequest(requestId);
   return { ok: true, message: `มอบหมายงานให้ ${assignee.name} แล้ว` };
 }

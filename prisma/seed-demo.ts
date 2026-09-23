@@ -6,17 +6,17 @@
  *   npm run db:seed:demo -- --clean # remove everything this script created
  *
  * Demo accounts use the @demo.local domain (password: demo1234); every request
- * they reported is removed by --clean.
+ * they reported is removed by --clean. Because that password is public, adding
+ * demo data to a non-local database needs an explicit --allow-remote.
  */
-import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import type { Priority, RequestStatus } from "../src/generated/prisma/enums";
+import { isLocalDatabase, seedConnectionString } from "./seed-utils";
 
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
-});
+const connectionString = seedConnectionString();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
 const DEMO_DOMAIN = "@demo.local";
 const HOUR = 3_600_000;
@@ -95,6 +95,13 @@ async function clean() {
 
 async function main() {
   if (process.argv.includes("--clean")) return clean();
+
+  if (!isLocalDatabase(connectionString) && !process.argv.includes("--allow-remote")) {
+    throw new Error(
+      "Refusing to add demo accounts (password demo1234) to a non-local database.\n" +
+        "Anyone could sign in with them. Re-run with --allow-remote if that is really what you want.",
+    );
+  }
 
   if (await prisma.user.count({ where: { email: { endsWith: DEMO_DOMAIN } } })) {
     console.log("Demo data already exists. Run with --clean first to recreate it.");
@@ -247,7 +254,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error(e instanceof Error ? e.message : e);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());

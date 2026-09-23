@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  MAINTENANCE
+  ADMIN
+}
+
+enum RequestStatus {
+  PENDING // รอรับเรื่อง
+  ACCEPTED // รับเรื่องแล้ว
+  IN_PROGRESS // กำลังดำเนินการ
+  ON_HOLD // รออะไหล่ / พักงาน
+  COMPLETED // ซ่อมเสร็จ
+  REJECTED // ไม่สามารถดำเนินการได้
+  CANCELLED // ผู้แจ้งยกเลิก
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ImageKind {
+  BEFORE // รูปที่ผู้แจ้งถ่ายตอนแจ้ง
+  AFTER // รูปหลังซ่อมโดยช่าง
+}
+
+enum ActivityType {
+  CREATED
+  STATUS_CHANGED
+  ASSIGNED
+  COMMENT
+  RATED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  phone        String?
+  department   String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reportedRequests RepairRequest[] @relation("Reporter")
+  assignedRequests RepairRequest[] @relation("Assignee")
+  activities       RequestActivity[]
+  uploadedImages   RepairImage[]
+  notifications    Notification[]
+}
+
+model Building {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  requests RepairRequest[]
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  requests RepairRequest[]
+}
+
+model RepairRequest {
+  id          String        @id @default(cuid())
+  code        String        @unique // เลขที่ใบแจ้งซ่อม เช่น RP-202609-0001
+  equipment   String // ชื่ออุปกรณ์ที่เสียหาย
+  assetNumber String? // เลขครุภัณฑ์
+  description String
+  floor       String?
+  location    String // ห้อง / จุดที่ตั้ง
+  priority    Priority      @default(MEDIUM)
+  status      RequestStatus @default(PENDING)
+  rating      Int? // 1-5 คะแนนความพึงพอใจหลังซ่อมเสร็จ
+  feedback    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  completedAt DateTime?
+
+  buildingId String
+  building   Building @relation(fields: [buildingId], references: [id])
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  reporterId String
+  reporter   User     @relation("Reporter", fields: [reporterId], references: [id])
+  assigneeId String?
+  assignee   User?    @relation("Assignee", fields: [assigneeId], references: [id])
+
+  images     RepairImage[]
+  activities RequestActivity[]
+
+  @@index([status])
+  @@index([reporterId])
+  @@index([assigneeId])
+}
+
+model RepairImage {
+  id        String    @id @default(cuid())
+  filename  String    @unique
+  mimeType  String
+  size      Int
+  kind      ImageKind @default(BEFORE)
+  createdAt DateTime  @default(now())
+
+  requestId    String
+  request      RepairRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  uploadedById String
+  uploadedBy   User          @relation(fields: [uploadedById], references: [id])
+}
+
+model RequestActivity {
+  id         String         @id @default(cuid())
+  type       ActivityType
+  fromStatus RequestStatus?
+  toStatus   RequestStatus?
+  message    String?
+  createdAt  DateTime       @default(now())
+
+  requestId String
+  request   RepairRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  actorId   String
+  actor     User          @relation(fields: [actorId], references: [id])
+
+  @@index([requestId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}

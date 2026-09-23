@@ -1,0 +1,35 @@
+import { z } from "zod";
+
+export type FieldErrors = Record<string, string[] | undefined>;
+export type ActionResult<T = undefined> =
+  | { ok: true; data?: T; message?: string }
+  | { ok: false; error: string; fieldErrors?: FieldErrors };
+
+export const passwordSchema = z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร").max(72);
+
+export const registerSchema = z
+  .object({
+    name: z.string().trim().min(2, "กรุณากรอกชื่อ-นามสกุล").max(100),
+    email: z.email("รูปแบบอีเมลไม่ถูกต้อง").trim().toLowerCase(),
+    phone: z.string().trim().max(20).optional(),
+    department: z.string().trim().max(100).optional(),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "รหัสผ่านไม่ตรงกัน",
+    path: ["confirmPassword"],
+  });
+
+/** Converts empty strings from FormData into undefined so optional fields validate. */
+export function formToObject(formData: FormData) {
+  const obj: Record<string, string | undefined> = {};
+  for (const [key, value] of formData.entries()) {
+    if (typeof value === "string") obj[key] = value.trim() === "" ? undefined : value;
+  }
+  return obj;
+}
+
+export function flattenErrors(error: z.ZodError): FieldErrors {
+  return z.flattenError(error).fieldErrors as FieldErrors;
+}

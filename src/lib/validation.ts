@@ -33,3 +33,20 @@ export function formToObject(formData: FormData) {
 export function flattenErrors(error: z.ZodError): FieldErrors {
   return z.flattenError(error).fieldErrors as FieldErrors;
 }
+
+export const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
+
+export const createRequestSchema = z.object({
+  equipment: z.string({ error: "กรุณาระบุอุปกรณ์ที่เสียหาย" }).trim().min(2, "กรุณาระบุอุปกรณ์ที่เสียหาย").max(150),
+  assetNumber: z.string().trim().max(50).optional(),
+  categoryId: z.string({ error: "กรุณาเลือกประเภทงาน" }).min(1, "กรุณาเลือกประเภทงาน"),
+  buildingId: z.string({ error: "กรุณาเลือกอาคาร" }).min(1, "กรุณาเลือกอาคาร"),
+  floor: z.string().trim().max(20).optional(),
+  location: z.string({ error: "กรุณาระบุห้อง/สถานที่" }).trim().min(1, "กรุณาระบุห้อง/สถานที่").max(150),
+  priority: z.enum(PRIORITIES).default("MEDIUM"),
+  description: z
+    .string({ error: "กรุณาอธิบายอาการเสีย" })
+    .trim()
+    .min(5, "กรุณาอธิบายอาการเสียอย่างน้อย 5 ตัวอักษร")
+    .max(2000),
+});

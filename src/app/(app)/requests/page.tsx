@@ -17,7 +17,7 @@ const TABS = [
 
 export default async function MyRequestsPage({ searchParams }: PageProps<"/requests">) {
   const user = await requireUser();
-  const { tab: tabParam, created } = await searchParams;
+  const { tab: tabParam } = await searchParams;
   const tab = TABS.find((t) => t.key === tabParam)?.key ?? "open";
 
   const statusFilter: { status?: { in?: RequestStatus[]; notIn?: RequestStatus[] } } =
@@ -44,12 +44,6 @@ export default async function MyRequestsPage({ searchParams }: PageProps<"/reque
           </Link>
         }
       />
-
-      {typeof created === "string" && (
-        <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 ring-1 ring-emerald-200">
-          ✅ ส่งแจ้งซ่อมเลขที่ <strong>{created}</strong> เรียบร้อยแล้ว ช่างซ่อมบำรุงจะได้รับเรื่องทันที
-        </p>
-      )}
 
       <div className="mb-4 flex gap-1 overflow-x-auto rounded-lg bg-slate-100 p-1 sm:inline-flex">
         {TABS.map((t) => (

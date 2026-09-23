@@ -47,7 +47,7 @@ export function RepairRequestForm({ buildings, categories }: { buildings: Option
           return;
         }
         photos.forEach((p) => URL.revokeObjectURL(p.url));
-        router.push(`/requests?created=${res.data?.code}`);
+        router.push(`/requests/${res.data?.id}?created=1`);
       } catch {
         setError("ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง (รูปอาจมีขนาดใหญ่เกินไป)");
       }

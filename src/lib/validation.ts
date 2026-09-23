@@ -34,6 +34,20 @@ export function flattenErrors(error: z.ZodError): FieldErrors {
   return z.flattenError(error).fieldErrors as FieldErrors;
 }
 
+export const profileSchema = z.object({
+  name: z.string({ error: "กรุณากรอกชื่อ-นามสกุล" }).trim().min(2, "กรุณากรอกชื่อ-นามสกุล").max(100),
+  phone: z.string().trim().max(20).optional(),
+  department: z.string().trim().max(100).optional(),
+});
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string({ error: "กรุณากรอกรหัสผ่านปัจจุบัน" }).min(1, "กรุณากรอกรหัสผ่านปัจจุบัน"),
+    newPassword: passwordSchema,
+    confirmPassword: z.string({ error: "กรุณายืนยันรหัสผ่าน" }),
+  })
+  .refine((d) => d.newPassword === d.confirmPassword, { message: "รหัสผ่านไม่ตรงกัน", path: ["confirmPassword"] });
+
 export const ROLES = ["USER", "MAINTENANCE", "ADMIN"] as const;
 
 export const adminCreateUserSchema = z.object({

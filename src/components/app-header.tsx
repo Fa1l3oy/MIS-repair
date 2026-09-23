@@ -35,14 +35,28 @@ export async function AppHeader({ user }: { user: Session["user"] }) {
         <NavLinks items={items} className="hidden flex-1 items-center gap-1 lg:flex" />
         <div className="ml-auto flex items-center gap-2">
           <NotificationBell initialCount={unread} />
-          <div className="hidden text-right sm:block">
+          <Link
+            href="/profile"
+            className="hidden rounded-lg px-2 py-1 text-right hover:bg-slate-100 sm:block"
+            title="โปรไฟล์ของฉัน"
+          >
             <p className="text-sm leading-tight font-medium">{user.name}</p>
             <span className={`badge mt-0.5 ${ROLE_STYLE[user.role]}`}>{ROLE_LABEL[user.role]}</span>
-          </div>
+          </Link>
+          <Link
+            href="/profile"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-xl hover:bg-slate-100 sm:hidden"
+            aria-label="โปรไฟล์ของฉัน"
+          >
+            👤
+          </Link>
           <SignOutButton />
         </div>
       </div>
-      <NavLinks items={items} className="flex gap-1 overflow-x-auto border-t border-slate-100 px-4 py-2 lg:hidden" />
+      <NavLinks
+        items={items}
+        className="flex gap-1 overflow-x-auto border-t border-slate-100 px-4 py-2 [scrollbar-width:none] lg:hidden"
+      />
     </header>
   );
 }

@@ -19,17 +19,17 @@ export const authOptions: NextAuthOptions = {
         const password = credentials?.password;
         if (!email || !password) return null;
 
-        const wait = lockedMinutes(email);
+        const wait = await lockedMinutes(email);
         if (wait > 0) {
           throw new Error(`กรอกรหัสผ่านผิดหลายครั้ง กรุณาลองใหม่ในอีก ${wait} นาที`);
         }
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-          recordFailure(email);
+          await recordFailure(email);
           throw new Error("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
         }
-        clearFailures(email);
+        await clearFailures(email);
         if (!user.isActive) {
           throw new Error("บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ");
         }

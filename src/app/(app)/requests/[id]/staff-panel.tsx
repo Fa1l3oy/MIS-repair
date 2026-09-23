@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { PhotoPicker, type PickedPhoto } from "@/components/photo-picker";
+import { MAX_UPLOAD_BYTES, PhotoPicker, totalPhotoBytes, type PickedPhoto } from "@/components/photo-picker";
 import type { RequestStatus, Role } from "@/generated/prisma/enums";
 import { CLOSED_STATUSES, STATUS_LABEL } from "@/lib/labels";
 import { STAFF_TRANSITIONS } from "@/lib/workflow";
@@ -37,8 +37,13 @@ export function StaffPanel({ requestId, status, assignee, viewer, technicians }:
 
   function run(fn: () => Promise<{ ok: boolean; error?: string; message?: string }>) {
     startTransition(async () => {
-      const res = await fn();
-      setResult({ ok: res.ok, text: (res.ok ? res.message : res.error) ?? (res.ok ? "บันทึกแล้ว" : "เกิดข้อผิดพลาด") });
+      try {
+        const res = await fn();
+        setResult({ ok: res.ok, text: (res.ok ? res.message : res.error) ?? (res.ok ? "บันทึกแล้ว" : "เกิดข้อผิดพลาด") });
+      } catch {
+        // e.g. network loss, or the host rejecting an oversized upload (HTTP 413)
+        setResult({ ok: false, text: "ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง (รูปอาจมีขนาดใหญ่เกินไป)" });
+      }
     });
   }
 
@@ -108,6 +113,7 @@ function StatusForm({
   const [note, setNote] = useState("");
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [open, setOpen] = useState(status !== "PENDING");
+  const tooLarge = next !== "REJECTED" && totalPhotoBytes(photos) > MAX_UPLOAD_BYTES;
 
   if (!open) {
     return (
@@ -122,11 +128,13 @@ function StatusForm({
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
+        if (tooLarge) return;
         const fd = new FormData();
         fd.set("requestId", requestId);
         fd.set("status", next);
         fd.set("note", note);
-        photos.forEach((p) => fd.append("photos", p.file));
+        // Photos are hidden (and not sent) when rejecting a job.
+        if (next !== "REJECTED") photos.forEach((p) => fd.append("photos", p.file));
         onSubmit(fd);
       }}
     >
@@ -176,13 +184,16 @@ function StatusForm({
         <div>
           <p className="label">แนบรูปหลังซ่อม / ความคืบหน้า</p>
           <PhotoPicker photos={photos} onChange={setPhotos} />
+          {tooLarge && (
+            <p className="mt-1 text-xs text-rose-600">รูปภาพรวมกันมีขนาดใหญ่เกิน 4 MB กรุณาลดจำนวนรูป</p>
+          )}
         </div>
       )}
 
       <button
         type="submit"
         className={next === "REJECTED" ? "btn-danger w-full" : "btn-primary w-full"}
-        disabled={pending || !next || (next === "REJECTED" && !note.trim())}
+        disabled={pending || !next || tooLarge || (next === "REJECTED" && !note.trim())}
       >
         {pending ? "กำลังบันทึก..." : "บันทึกสถานะ"}
       </button>

@@ -4,30 +4,63 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 export type PickedPhoto = { id: string; file: File; url: string };
 
-const MAX_DIMENSION = 1600;
+/**
+ * Vercel rejects request bodies over 4.5 MB, and all photos of a form travel in
+ * one request. Each photo is squeezed under PHOTO_BUDGET (5 × 700 KB plus form
+ * fields stays well below the limit) and forms refuse to send more than
+ * MAX_UPLOAD_BYTES in total.
+ */
+const PHOTO_BUDGET = 700 * 1024;
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+
+/** Longest side (px) and JPEG quality, tried in order until the photo fits the budget. */
+const COMPRESSION_STEPS: [number, number][] = [
+  [1600, 0.82],
+  [1600, 0.7],
+  [1280, 0.7],
+  [1024, 0.65],
+  [800, 0.6],
+];
+
+export function totalPhotoBytes(photos: PickedPhoto[]) {
+  return photos.reduce((n, p) => n + p.file.size, 0);
+}
 
 // Not crypto.randomUUID(): it only exists in secure contexts, and phones usually
 // reach a dev/LAN server over plain http://<ip>.
 let photoSeq = 0;
 const nextPhotoId = () => `photo-${Date.now()}-${photoSeq++}`;
 
-/** Downscales large photos to JPEG in the browser so uploads stay small. */
+/** Downscales photos to JPEG in the browser so uploads stay small and fast on mobile data. */
 async function compressImage(file: File): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
+  let bitmap: ImageBitmap | undefined;
   try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
-    if (scale === 1 && file.size < 800 * 1024 && file.type === "image/jpeg") return file;
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.82));
-    if (!blob) return file;
-    return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+    bitmap = await createImageBitmap(file);
+    const longest = Math.max(bitmap.width, bitmap.height);
+    if (file.type === "image/jpeg" && file.size <= PHOTO_BUDGET && longest <= COMPRESSION_STEPS[0][0]) return file;
+
+    let smallest: Blob | null = null;
+    for (const [maxSide, quality] of COMPRESSION_STEPS) {
+      const scale = Math.min(1, maxSide / longest);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = "#fff"; // transparent PNG areas would otherwise turn black in JPEG
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", quality));
+      if (!blob) break;
+      smallest = blob;
+      if (blob.size <= PHOTO_BUDGET) break;
+    }
+    if (!smallest) return file;
+    return new File([smallest], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
   } catch {
     return file; // Undecodable here (e.g. HEIC on desktop) — let the server validate it.
+  } finally {
+    bitmap?.close();
   }
 }
 

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FieldError } from "@/components/field-error";
-import { PhotoPicker, type PickedPhoto } from "@/components/photo-picker";
+import { MAX_UPLOAD_BYTES, PhotoPicker, totalPhotoBytes, type PickedPhoto } from "@/components/photo-picker";
 import { PRIORITY_LABEL } from "@/lib/labels";
 import { PRIORITIES, type FieldErrors } from "@/lib/validation";
 import { createRepairRequest } from "./actions";
@@ -33,6 +33,13 @@ export function RepairRequestForm({ buildings, categories }: { buildings: Option
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (totalPhotoBytes(photos) > MAX_UPLOAD_BYTES) {
+      const msg = "รูปภาพรวมกันมีขนาดใหญ่เกิน 4 MB กรุณาลดจำนวนรูปหรือถ่ายใหม่";
+      setError(msg);
+      setFieldErrors({ photos: [msg] });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     const formData = new FormData(e.currentTarget);
     formData.delete("photos");
     photos.forEach((p) => formData.append("photos", p.file));

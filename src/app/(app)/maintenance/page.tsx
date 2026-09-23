@@ -22,6 +22,8 @@ const TABS = [
 type Tab = (typeof TABS)[number]["key"];
 
 const OPEN_STATUSES = STATUS_ORDER.filter((s) => !CLOSED_STATUSES.includes(s));
+/** Jobs a technician has taken but not finished. Selectable as the "ACTIVE" filter. */
+const ACTIVE_STATUSES: RequestStatus[] = ["ACCEPTED", "IN_PROGRESS", "ON_HOLD"];
 
 function str(v: string | string[] | undefined) {
   return typeof v === "string" ? v.trim() : "";
@@ -34,13 +36,19 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
   const q = str(sp.q);
   const buildingId = str(sp.building);
   const priority = PRIORITIES.find((p) => p === sp.priority) as Priority | undefined;
-  const status = STATUS_ORDER.find((s) => s === sp.status) as RequestStatus | undefined;
+  const status = (sp.status === "ACTIVE" ? "ACTIVE" : STATUS_ORDER.find((s) => s === sp.status)) as
+    | RequestStatus
+    | "ACTIVE"
+    | undefined;
+  const statusWhere = status === "ACTIVE" ? { in: ACTIVE_STATUSES } : status;
+  const doneToday = tab === "all" && sp.done === "today";
   const page = Math.max(1, Number(sp.page) || 1);
 
   const where: Prisma.RepairRequestWhereInput = {
     ...(tab === "new" && { status: "PENDING" }),
-    ...(tab === "mine" && { assigneeId: user.id, status: status ?? { in: OPEN_STATUSES } }),
-    ...(tab === "all" && status && { status }),
+    ...(tab === "mine" && { assigneeId: user.id, status: statusWhere ?? { in: OPEN_STATUSES } }),
+    ...(tab === "all" && statusWhere && { status: statusWhere }),
+    ...(doneToday && { status: "COMPLETED", completedAt: { gte: startOfTodayBangkok() } }),
     ...(buildingId && { buildingId }),
     ...(priority && { priority }),
     ...(q && {
@@ -70,18 +78,18 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
     Promise.all([
       prisma.repairRequest.count({ where: { status: "PENDING" } }),
       prisma.repairRequest.count({ where: { assigneeId: user.id, status: { in: OPEN_STATUSES } } }),
-      prisma.repairRequest.count({ where: { status: { in: ["ACCEPTED", "IN_PROGRESS", "ON_HOLD"] } } }),
+      prisma.repairRequest.count({ where: { status: { in: ACTIVE_STATUSES } } }),
       prisma.repairRequest.count({ where: { status: "COMPLETED", completedAt: { gte: startOfTodayBangkok() } } }),
     ]),
   ]);
   buildings.sort((a, b) => a.name.localeCompare(b.name, "th"));
-  const [pendingCount, mineCount, inProgressCount, doneToday] = counts;
+  const [pendingCount, mineCount, inProgressCount, doneTodayCount] = counts;
 
   const stats = [
     { label: "งานใหม่รอรับ", value: pendingCount, href: "/maintenance?tab=new", tone: "text-sky-600" },
     { label: "งานของฉันที่ค้างอยู่", value: mineCount, href: "/maintenance?tab=mine", tone: "text-indigo-600" },
-    { label: "กำลังดำเนินการทั้งหมด", value: inProgressCount, href: "/maintenance?tab=all&status=IN_PROGRESS", tone: "text-amber-600" },
-    { label: "ซ่อมเสร็จวันนี้", value: doneToday, href: "/maintenance?tab=all&status=COMPLETED", tone: "text-emerald-600" },
+    { label: "อยู่ระหว่างดำเนินการ", value: inProgressCount, href: "/maintenance?tab=all&status=ACTIVE", tone: "text-amber-600" },
+    { label: "ซ่อมเสร็จวันนี้", value: doneTodayCount, href: "/maintenance?tab=all&done=today", tone: "text-emerald-600" },
   ];
 
   const hrefFor = (p: number) => {
@@ -90,6 +98,7 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
     if (buildingId) params.set("building", buildingId);
     if (priority) params.set("priority", priority);
     if (status) params.set("status", status);
+    if (doneToday) params.set("done", "today");
     params.set("page", String(p));
     return `/maintenance?${params}`;
   };
@@ -152,8 +161,9 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
         <div className="flex gap-2">
           {tab !== "new" && (
             <select name="status" defaultValue={status ?? ""} className="input" aria-label="สถานะ">
-              <option value="">ทุกสถานะ</option>
-              {(tab === "mine" ? OPEN_STATUSES.concat(CLOSED_STATUSES) : STATUS_ORDER).map((s) => (
+              <option value="">{tab === "mine" ? "งานที่ยังไม่เสร็จ" : "ทุกสถานะ"}</option>
+              <option value="ACTIVE">อยู่ระหว่างดำเนินการ (ทุกขั้นตอน)</option>
+              {STATUS_ORDER.map((s) => (
                 <option key={s} value={s}>
                   {STATUS_LABEL[s]}
                 </option>
@@ -166,7 +176,17 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
         </div>
       </form>
 
-      <p className="mb-2 text-sm text-slate-500">พบ {total} รายการ</p>
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+        พบ {total} รายการ
+        {doneToday && (
+          <Link
+            href="/maintenance?tab=all"
+            className="badge bg-emerald-50 text-emerald-700 ring-emerald-200 hover:bg-emerald-100"
+          >
+            เฉพาะงานที่ซ่อมเสร็จวันนี้ ✕
+          </Link>
+        )}
+      </div>
       <RequestTable
         rows={rows}
         emptyText={tab === "new" ? "ไม่มีงานใหม่ที่รอรับ 🎉" : tab === "mine" ? "คุณไม่มีงานค้างอยู่" : "ไม่พบรายการ"}

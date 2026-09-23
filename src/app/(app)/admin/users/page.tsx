@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "จัดการผู้ใช้
 export default async function AdminUsersPage({ searchParams }: PageProps<"/admin/users">) {
   const admin = await requireUser(["ADMIN"]);
   const sp = await searchParams;
-  const q = typeof sp.q === "string" ? sp.q.trim() : "";
+  const q = typeof sp.q === "string" ? sp.q.replaceAll("\0", "").trim() : ""; // PostgreSQL rejects NUL bytes
   const role = ROLES.find((r) => r === sp.role) as Role | undefined;
 
   const where: Prisma.UserWhereInput = {

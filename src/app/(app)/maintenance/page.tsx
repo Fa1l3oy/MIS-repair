@@ -26,7 +26,8 @@ const OPEN_STATUSES = STATUS_ORDER.filter((s) => !CLOSED_STATUSES.includes(s));
 const ACTIVE_STATUSES: RequestStatus[] = ["ACCEPTED", "IN_PROGRESS", "ON_HOLD"];
 
 function str(v: string | string[] | undefined) {
-  return typeof v === "string" ? v.trim() : "";
+  // PostgreSQL rejects NUL bytes in text, so drop them instead of erroring.
+  return typeof v === "string" ? v.replaceAll("\0", "").trim() : "";
 }
 
 export default async function MaintenancePage({ searchParams }: PageProps<"/maintenance">) {
@@ -42,7 +43,8 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
     | undefined;
   const statusWhere = status === "ACTIVE" ? { in: ACTIVE_STATUSES } : status;
   const doneToday = tab === "all" && sp.done === "today";
-  const page = Math.max(1, Number(sp.page) || 1);
+  const pageNum = Number(sp.page);
+  const page = Number.isSafeInteger(pageNum) && pageNum > 0 ? pageNum : 1; // Prisma's skip must be an integer
 
   const where: Prisma.RepairRequestWhereInput = {
     ...(tab === "new" && { status: "PENDING" }),

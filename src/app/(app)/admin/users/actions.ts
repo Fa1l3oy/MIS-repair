@@ -36,31 +36,42 @@ async function releaseOpenJobs(userId: string, userName: string, actorId: string
   });
   if (jobs.length === 0) return 0;
 
-  await prisma.$transaction([
-    prisma.repairRequest.updateMany({
-      where: { id: { in: jobs.map((j) => j.id) } },
-      data: { assigneeId: null, status: "PENDING" },
-    }),
-    prisma.requestActivity.createMany({
-      data: jobs.map((j) => ({
-        requestId: j.id,
-        actorId,
-        type: "STATUS_CHANGED" as const,
-        fromStatus: j.status,
-        toStatus: "PENDING" as const,
-        message: `คืนงานเข้าคิว เนื่องจาก ${userName} ${reason}`,
-      })),
-    }),
-  ]);
+  // Release each job only if it is still this technician's and still in the
+  // status we read: a job completed, cancelled or re-assigned in the meantime
+  // must not be dragged back to PENDING.
+  const released = await prisma.$transaction(async (tx) => {
+    const done: typeof jobs = [];
+    for (const job of jobs) {
+      const updated = await tx.repairRequest.updateMany({
+        where: { id: job.id, assigneeId: userId, status: job.status },
+        data: { assigneeId: null, status: "PENDING" },
+      });
+      if (updated.count === 0) continue;
+      await tx.requestActivity.create({
+        data: {
+          requestId: job.id,
+          actorId,
+          type: "STATUS_CHANGED",
+          fromStatus: job.status,
+          toStatus: "PENDING",
+          message: `คืนงานเข้าคิว เนื่องจาก ${userName} ${reason}`,
+        },
+      });
+      done.push(job);
+    }
+    return done;
+  });
+  if (released.length === 0) return 0;
+
   await notifyMaintenanceTeam(
     {
-      title: `มีงานคืนเข้าคิว ${jobs.length} งาน`,
-      message: `${jobs.map((j) => j.code).join(", ")} — รอช่างรับงาน`,
+      title: `มีงานคืนเข้าคิว ${released.length} งาน`,
+      message: `${released.map((j) => j.code).join(", ")} — รอช่างรับงาน`,
       link: "/maintenance?tab=new",
     },
     actorId,
   );
-  return jobs.length;
+  return released.length;
 }
 
 export async function changeUserRole(userId: string, role: Role): Promise<ActionResult> {

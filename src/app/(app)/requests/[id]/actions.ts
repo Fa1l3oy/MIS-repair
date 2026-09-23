@@ -33,9 +33,10 @@ export async function cancelRequest(requestId: string, reason: string): Promise<
     return { ok: false, error: "ไม่สามารถยกเลิกได้ เนื่องจากช่างเริ่มดำเนินการแล้ว" };
   }
 
-  // Guard on status in the WHERE so a concurrent staff update isn't overwritten.
+  // Guard on the exact status and assignee we just checked, so a technician
+  // accepting the job in the meantime isn't silently overridden.
   const updated = await prisma.repairRequest.updateMany({
-    where: { id: requestId, status: { in: CANCELLABLE_STATUSES } },
+    where: { id: requestId, status: request.status, assigneeId: request.assigneeId },
     data: { status: "CANCELLED" },
   });
   if (updated.count === 0) return { ok: false, error: "สถานะงานเปลี่ยนไปแล้ว กรุณารีเฟรชหน้า" };

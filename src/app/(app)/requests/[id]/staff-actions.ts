@@ -113,8 +113,10 @@ export async function updateRequestStatus(formData: FormData): Promise<ActionRes
 
     const assigneeId = request.assigneeId ?? (status === "REJECTED" ? null : user.id);
     const result = await prisma.$transaction(async (tx) => {
+      // Guard on status *and* assignee: the ownership check above used this
+      // snapshot, so an admin re-assigning the job in between must win.
       const updated = await tx.repairRequest.updateMany({
-        where: { id: requestId, status: request.status },
+        where: { id: requestId, status: request.status, assigneeId: request.assigneeId },
         data: {
           status,
           assigneeId,
@@ -189,8 +191,10 @@ export async function assignRequest(requestId: string, assigneeId: string): Prom
   if (request.assigneeId === assignee.id) return { ok: false, error: "งานนี้มอบหมายให้ช่างท่านนี้อยู่แล้ว" };
 
   const nextStatus: RequestStatus = request.status === "PENDING" ? "ACCEPTED" : request.status;
+  // Same snapshot guard as status updates, so two admins (or an admin and the
+  // technician) can't overwrite each other's assignment unnoticed.
   const updated = await prisma.repairRequest.updateMany({
-    where: { id: requestId, status: request.status },
+    where: { id: requestId, status: request.status, assigneeId: request.assigneeId },
     data: { assigneeId: assignee.id, status: nextStatus },
   });
   if (updated.count === 0) return { ok: false, error: STALE };

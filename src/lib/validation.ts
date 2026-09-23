@@ -7,6 +7,16 @@ export type ActionResult<T = undefined> =
 
 export const passwordSchema = z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร").max(72);
 
+/**
+ * Server actions are public endpoints that accept any serialisable argument, so
+ * ids passed as plain arguments must be checked: an object like `{ not: "" }`
+ * would otherwise become a Prisma filter matching every row.
+ */
+const idSchema = z.string().min(1).max(64);
+export function isId(value: unknown): value is string {
+  return idSchema.safeParse(value).success;
+}
+
 export const registerSchema = z
   .object({
     name: z.string().trim().min(2, "กรุณากรอกชื่อ-นามสกุล").max(100),

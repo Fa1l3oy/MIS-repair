@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { currentUser } from "@/lib/session";
-import type { ActionResult } from "@/lib/validation";
+import { isId, type ActionResult } from "@/lib/validation";
 
 export type MasterKind = "building" | "category";
 
@@ -26,12 +26,17 @@ function isUniqueViolation(e: unknown) {
   return e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
 }
 
+const INVALID = { ok: false as const, error: "ข้อมูลไม่ถูกต้อง" };
+const isKind = (kind: unknown): kind is MasterKind => kind === "building" || kind === "category";
+
 /** Creates (no id) or renames (with id) a building / category. */
 export async function saveMasterItem(
   kind: MasterKind,
   input: { id?: string; name: string; code?: string },
 ): Promise<ActionResult> {
   if (!(await currentUser(["ADMIN"]))) return { ok: false, error: "เฉพาะผู้ดูแลระบบเท่านั้น" };
+  if (!isKind(kind) || typeof input !== "object" || input === null) return INVALID;
+  if (input.id !== undefined && !isId(input.id)) return INVALID;
 
   const parsed = itemSchema.safeParse({ name: input.name, code: input.code || undefined });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
@@ -57,6 +62,7 @@ export async function saveMasterItem(
 /** Inactive items disappear from the request form but stay on existing requests. */
 export async function setMasterItemActive(kind: MasterKind, id: string, isActive: boolean): Promise<ActionResult> {
   if (!(await currentUser(["ADMIN"]))) return { ok: false, error: "เฉพาะผู้ดูแลระบบเท่านั้น" };
+  if (!isKind(kind) || !isId(id) || typeof isActive !== "boolean") return INVALID;
   const updated =
     kind === "building"
       ? await prisma.building.updateMany({ where: { id }, data: { isActive } })
@@ -69,6 +75,7 @@ export async function setMasterItemActive(kind: MasterKind, id: string, isActive
 /** Only unused items can be deleted; used ones should be deactivated instead. */
 export async function deleteMasterItem(kind: MasterKind, id: string): Promise<ActionResult> {
   if (!(await currentUser(["ADMIN"]))) return { ok: false, error: "เฉพาะผู้ดูแลระบบเท่านั้น" };
+  if (!isKind(kind) || !isId(id)) return INVALID;
   const where = kind === "building" ? { buildingId: id } : { categoryId: id };
   if (await prisma.repairRequest.count({ where })) {
     return { ok: false, error: "มีใบแจ้งซ่อมที่อ้างอิงอยู่ ไม่สามารถลบได้ ให้ปิดการใช้งานแทน" };

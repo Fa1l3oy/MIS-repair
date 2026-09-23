@@ -11,6 +11,7 @@ import {
   adminCreateUserSchema,
   flattenErrors,
   formToObject,
+  isId,
   passwordSchema,
   ROLES,
   type ActionResult,
@@ -65,6 +66,7 @@ async function releaseOpenJobs(userId: string, userName: string, actorId: string
 export async function changeUserRole(userId: string, role: Role): Promise<ActionResult> {
   const admin = await currentUser(["ADMIN"]);
   if (!admin) return NO_PERMISSION;
+  if (!isId(userId)) return { ok: false, error: "ไม่พบผู้ใช้" };
   if (!ROLES.includes(role)) return { ok: false, error: "สิทธิ์ไม่ถูกต้อง" };
   if (userId === admin.id) return { ok: false, error: "ไม่สามารถเปลี่ยนสิทธิ์ของตัวเองได้" };
 
@@ -93,6 +95,7 @@ export async function changeUserRole(userId: string, role: Role): Promise<Action
 export async function setUserActive(userId: string, isActive: boolean): Promise<ActionResult> {
   const admin = await currentUser(["ADMIN"]);
   if (!admin) return NO_PERMISSION;
+  if (!isId(userId) || typeof isActive !== "boolean") return { ok: false, error: "ข้อมูลไม่ถูกต้อง" };
   if (userId === admin.id) return { ok: false, error: "ไม่สามารถระงับบัญชีของตัวเองได้" };
 
   const target = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
@@ -128,6 +131,7 @@ export async function createUserByAdmin(formData: FormData): Promise<ActionResul
 export async function resetUserPassword(userId: string, password: string): Promise<ActionResult> {
   const admin = await currentUser(["ADMIN"]);
   if (!admin) return NO_PERMISSION;
+  if (!isId(userId)) return { ok: false, error: "ไม่พบผู้ใช้" };
 
   const parsed = passwordSchema.safeParse(password);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };

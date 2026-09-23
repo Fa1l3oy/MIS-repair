@@ -8,7 +8,7 @@ import { notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { currentUser, STAFF_ROLES } from "@/lib/session";
 import { deleteImages, getImageFiles, saveImage, UploadError } from "@/lib/uploads";
-import type { ActionResult } from "@/lib/validation";
+import { isId, type ActionResult } from "@/lib/validation";
 import { canStaffTransition } from "@/lib/workflow";
 
 function revalidateRequest(id: string) {
@@ -24,6 +24,7 @@ const STALE = "สถานะงานถูกเปลี่ยนโดย�
 export async function acceptRequest(requestId: string): Promise<ActionResult> {
   const user = await currentUser(STAFF_ROLES);
   if (!user) return { ok: false, error: "คุณไม่มีสิทธิ์ดำเนินการนี้" };
+  if (!isId(requestId)) return { ok: false, error: "ไม่พบใบแจ้งซ่อม" };
 
   const updated = await prisma.repairRequest.updateMany({
     where: { id: requestId, status: "PENDING", assigneeId: null },
@@ -168,6 +169,7 @@ export async function updateRequestStatus(formData: FormData): Promise<ActionRes
 export async function assignRequest(requestId: string, assigneeId: string): Promise<ActionResult> {
   const user = await currentUser(["ADMIN"]);
   if (!user) return { ok: false, error: "เฉพาะผู้ดูแลระบบเท่านั้นที่มอบหมายงานได้" };
+  if (!isId(requestId) || !isId(assigneeId)) return { ok: false, error: "ข้อมูลไม่ถูกต้อง" };
 
   const [request, assignee] = await Promise.all([
     prisma.repairRequest.findUnique({

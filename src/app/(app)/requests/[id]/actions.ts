@@ -6,7 +6,7 @@ import { notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { canViewRequest } from "@/lib/requests";
 import { currentUser } from "@/lib/session";
-import type { ActionResult } from "@/lib/validation";
+import { isId, type ActionResult } from "@/lib/validation";
 import { CANCELLABLE_STATUSES } from "@/lib/workflow";
 
 function revalidateRequest(id: string) {
@@ -18,6 +18,7 @@ function revalidateRequest(id: string) {
 export async function cancelRequest(requestId: string, reason: string): Promise<ActionResult> {
   const user = await currentUser();
   if (!user) return { ok: false, error: "กรุณาเข้าสู่ระบบใหม่อีกครั้ง" };
+  if (!isId(requestId)) return { ok: false, error: "ไม่พบใบแจ้งซ่อม" };
 
   const parsedReason = z.string().trim().max(500, "เหตุผลยาวเกินไป").safeParse(reason);
   if (!parsedReason.success) return { ok: false, error: parsedReason.error.issues[0].message };
@@ -67,6 +68,7 @@ const commentSchema = z.string().trim().min(1, "กรุณาพิมพ์�
 export async function addComment(requestId: string, text: string): Promise<ActionResult> {
   const user = await currentUser();
   if (!user) return { ok: false, error: "กรุณาเข้าสู่ระบบใหม่อีกครั้ง" };
+  if (!isId(requestId)) return { ok: false, error: "ไม่พบใบแจ้งซ่อม" };
 
   const parsed = commentSchema.safeParse(text);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
@@ -98,6 +100,7 @@ const ratingSchema = z.object({
 export async function rateRequest(requestId: string, input: { rating: number; feedback?: string }): Promise<ActionResult> {
   const user = await currentUser();
   if (!user) return { ok: false, error: "กรุณาเข้าสู่ระบบใหม่อีกครั้ง" };
+  if (!isId(requestId)) return { ok: false, error: "ไม่พบใบแจ้งซ่อม" };
 
   const parsed = ratingSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };

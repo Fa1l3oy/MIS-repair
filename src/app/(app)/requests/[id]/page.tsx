@@ -8,10 +8,11 @@ import { StatusStepper } from "@/components/status-stepper";
 import { formatDateTime } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
 import { canViewRequest, isStaff } from "@/lib/requests";
-import { requireUser } from "@/lib/session";
+import { requireUser, STAFF_ROLES } from "@/lib/session";
 import { CANCELLABLE_STATUSES } from "@/lib/workflow";
 import { CommentForm } from "./comment-form";
 import { CancelRequestButton, RatingForm } from "./reporter-actions";
+import { StaffPanel } from "./staff-panel";
 
 export const metadata: Metadata = { title: "รายละเอียดใบแจ้งซ่อม" };
 
@@ -44,6 +45,15 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
     },
   });
   if (!request || !canViewRequest(user, request)) notFound();
+
+  const technicians =
+    user.role === "ADMIN"
+      ? await prisma.user.findMany({
+          where: { isActive: true, role: { in: STAFF_ROLES } },
+          orderBy: [{ role: "asc" }, { name: "asc" }], // technicians first, then admins
+          select: { id: true, name: true },
+        })
+      : [];
 
   const isReporter = request.reporterId === user.id;
   const beforeImages = request.images.filter((i) => i.kind === "BEFORE");
@@ -97,6 +107,16 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
         </div>
 
         <aside className="space-y-6">
+          {isStaff(user) && (
+            <StaffPanel
+              requestId={request.id}
+              status={request.status}
+              assignee={request.assignee && { id: request.assignee.id, name: request.assignee.name }}
+              viewer={{ id: user.id, role: user.role }}
+              technicians={technicians}
+            />
+          )}
+
           <section className="card p-5">
             <h2 className="mb-2 font-semibold">ข้อมูลการแจ้งซ่อม</h2>
             <dl className="divide-y divide-slate-100">

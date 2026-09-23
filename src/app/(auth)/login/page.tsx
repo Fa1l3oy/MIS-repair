@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { safeInternalPath } from "@/lib/safe-path";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "เข้าสู่ระบบ" };
@@ -19,7 +20,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         </p>
       )}
       <LoginForm
-        callbackUrl={typeof callbackUrl === "string" && callbackUrl.startsWith("/") ? callbackUrl : "/"}
+        callbackUrl={safeInternalPath(callbackUrl)}
         initialError={initialError}
       />
       <p className="mt-6 text-center text-sm text-slate-500">

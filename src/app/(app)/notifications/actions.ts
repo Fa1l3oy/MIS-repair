@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { safeInternalPath } from "@/lib/safe-path";
 import { currentUser } from "@/lib/session";
 
 /** Marks one notification as read and follows its link. */
@@ -15,8 +16,8 @@ export async function openNotification(id: string) {
 
   await prisma.notification.update({ where: { id }, data: { isRead: true } });
   revalidatePath("/", "layout");
-  // Links are always internal paths we generated; never follow anything else.
-  redirect(n.link?.startsWith("/") ? n.link : "/notifications");
+  // Links are internal paths we generated; never follow anything else.
+  redirect(safeInternalPath(n.link, "/notifications"));
 }
 
 export async function markAllNotificationsRead() {

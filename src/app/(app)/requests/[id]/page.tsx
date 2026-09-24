@@ -34,6 +34,7 @@ import { SLA_HOURS, slaInfo } from "@/lib/sla";
 import { CANCELLABLE_STATUSES } from "@/lib/workflow";
 import { CommentForm } from "./comment-form";
 import { PrintButton } from "./print-button";
+import { RepairHistory } from "./repair-history";
 import { CancelRequestButton, RatingForm, RatingStars } from "./reporter-actions";
 import { StaffPanel } from "./staff-panel";
 import { WorkOrder } from "./work-order";
@@ -201,7 +202,7 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
               <p className="mt-2 text-[15px] leading-relaxed whitespace-pre-line text-zinc-700">{request.description}</p>
 
               <h3 className="mt-6 mb-3 text-xs font-medium text-zinc-500">รูปภาพจากผู้แจ้ง</h3>
-              <PhotoGallery images={beforeImages} emptyText="ไม่มีรูปภาพ" />
+              <PhotoGallery images={beforeImages} emptyText="ไม่มีรูปภาพ" label="รูปจากผู้แจ้ง" />
 
               {afterImages.length > 0 && (
                 <>
@@ -209,7 +210,7 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
                     <CircleCheck className="size-3.5" strokeWidth={2} />
                     รูปภาพหลังซ่อม
                   </h3>
-                  <PhotoGallery images={afterImages} />
+                  <PhotoGallery images={afterImages} label="รูปหลังซ่อม" />
                 </>
               )}
             </Panel>
@@ -323,6 +324,8 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
                 </div>
               </div>
             </Panel>
+
+            {isStaff(user) && <RepairHistory request={request} />}
 
             {isReporter && CANCELLABLE_STATUSES.includes(request.status) && (
               <Panel>

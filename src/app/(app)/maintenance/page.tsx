@@ -1,4 +1,4 @@
-import { AlarmClock, CircleCheck, Inbox, Search, UserCheck, Wrench, X } from "lucide-react";
+import { AlarmClock, CircleCheck, Download, Inbox, Search, UserCheck, Wrench, X } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
@@ -6,10 +6,18 @@ import { Pagination } from "@/components/pagination";
 import { RequestTable, requestRowSelect } from "@/components/request-table";
 import { SegmentedLinks } from "@/components/ui/segmented";
 import { StatCard } from "@/components/ui/stat-card";
-import type { Prisma } from "@/generated/prisma/client";
-import type { Priority, RequestStatus } from "@/generated/prisma/enums";
 import { startOfTodayBangkok } from "@/lib/dates";
-import { CLOSED_STATUSES, PRIORITY_LABEL, STATUS_LABEL, STATUS_ORDER } from "@/lib/labels";
+import { PRIORITY_LABEL, STATUS_LABEL, STATUS_ORDER } from "@/lib/labels";
+import {
+  ACTIVE_STATUSES,
+  isFiltered,
+  MAINTENANCE_TABS,
+  maintenanceOrderBy,
+  maintenanceParams,
+  maintenanceWhere,
+  OPEN_STATUSES,
+  parseMaintenanceFilters,
+} from "@/lib/maintenance-filters";
 import { prisma } from "@/lib/prisma";
 import { requireUser, STAFF_ROLES } from "@/lib/session";
 import { overdueWhere } from "@/lib/sla";
@@ -18,62 +26,18 @@ import { PRIORITIES } from "@/lib/validation";
 export const metadata: Metadata = { title: "งานซ่อมบำรุง" };
 
 const PAGE_SIZE = 20;
-const TABS = [
-  { key: "new", label: "งานใหม่รอรับ" },
-  { key: "mine", label: "งานของฉัน" },
-  { key: "all", label: "งานทั้งหมด" },
-] as const;
-type Tab = (typeof TABS)[number]["key"];
-
-const OPEN_STATUSES = STATUS_ORDER.filter((s) => !CLOSED_STATUSES.includes(s));
-/** Jobs a technician has taken but not finished. Selectable as the "ACTIVE" filter. */
-const ACTIVE_STATUSES: RequestStatus[] = ["ACCEPTED", "IN_PROGRESS", "ON_HOLD"];
-
-function str(v: string | string[] | undefined) {
-  // PostgreSQL rejects NUL bytes in text, so drop them instead of erroring.
-  return typeof v === "string" ? v.replaceAll("\0", "").trim() : "";
-}
 
 export default async function MaintenancePage({ searchParams }: PageProps<"/maintenance">) {
   const user = await requireUser(STAFF_ROLES);
   const sp = await searchParams;
-  const tab: Tab = TABS.find((t) => t.key === sp.tab)?.key ?? "new";
-  const q = str(sp.q);
-  const buildingId = str(sp.building);
-  const priority = PRIORITIES.find((p) => p === sp.priority) as Priority | undefined;
-  const status = (sp.status === "ACTIVE" ? "ACTIVE" : STATUS_ORDER.find((s) => s === sp.status)) as
-    | RequestStatus
-    | "ACTIVE"
-    | undefined;
-  const statusWhere = status === "ACTIVE" ? { in: ACTIVE_STATUSES } : status;
-  const doneToday = tab === "all" && sp.done === "today";
-  const overdueOnly = sp.sla === "overdue";
+  const filters = parseMaintenanceFilters(sp);
+  const { tab, q, buildingId, priority, status, doneToday, overdueOnly } = filters;
   const now = new Date();
   const pageNum = Number(sp.page);
   const page = Number.isSafeInteger(pageNum) && pageNum > 0 ? pageNum : 1; // Prisma's skip must be an integer
 
-  const where: Prisma.RepairRequestWhereInput = {
-    ...(tab === "new" && { status: "PENDING" }),
-    ...(tab === "mine" && { assigneeId: user.id, status: statusWhere ?? { in: OPEN_STATUSES } }),
-    ...(tab === "all" && statusWhere && { status: statusWhere }),
-    ...(doneToday && { status: "COMPLETED", completedAt: { gte: startOfTodayBangkok() } }),
-    // AND keeps the SLA condition separate from the search OR below.
-    ...(overdueOnly && { AND: [overdueWhere(now)] }),
-    ...(buildingId && { buildingId }),
-    ...(priority && { priority }),
-    ...(q && {
-      OR: [
-        { code: { contains: q, mode: "insensitive" } },
-        { equipment: { contains: q, mode: "insensitive" } },
-        { location: { contains: q, mode: "insensitive" } },
-        { assetNumber: { contains: q, mode: "insensitive" } },
-        { reporter: { name: { contains: q, mode: "insensitive" } } },
-      ],
-    }),
-  };
-  // Oldest urgent work first in the queues; newest first when browsing everything.
-  const orderBy: Prisma.RepairRequestOrderByWithRelationInput[] =
-    tab === "all" ? [{ createdAt: "desc" }] : [{ priority: "desc" }, { createdAt: "asc" }];
+  const where = maintenanceWhere(filters, user.id, now);
+  const orderBy = maintenanceOrderBy(tab);
 
   const [rows, total, buildings, counts] = await Promise.all([
     prisma.repairRequest.findMany({
@@ -103,16 +67,11 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
     { label: "เกินกำหนด", value: overdueCount, href: "/maintenance?tab=all&sla=overdue", tone: "rose", icon: AlarmClock },
     { label: "ซ่อมเสร็จวันนี้", value: doneTodayCount, href: "/maintenance?tab=all&done=today", tone: "emerald", icon: CircleCheck },
   ] as const;
-  const filtered = Boolean(q || buildingId || priority || status || doneToday || overdueOnly);
+  const filtered = isFiltered(filters);
+  const exportHref = `/maintenance/export?${maintenanceParams(filters)}`;
 
   const hrefFor = (p: number) => {
-    const params = new URLSearchParams({ tab });
-    if (q) params.set("q", q);
-    if (buildingId) params.set("building", buildingId);
-    if (priority) params.set("priority", priority);
-    if (status) params.set("status", status);
-    if (doneToday) params.set("done", "today");
-    if (overdueOnly) params.set("sla", "overdue");
+    const params = maintenanceParams(filters);
     params.set("page", String(p));
     return `/maintenance?${params}`;
   };
@@ -130,7 +89,7 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <SegmentedLinks
           label="มุมมองงาน"
-          items={TABS.map((t) => ({
+          items={MAINTENANCE_TABS.map((t) => ({
             href: `/maintenance?tab=${t.key}`,
             label: t.label,
             active: tab === t.key,
@@ -203,6 +162,18 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
             <X className="size-3.5" />
             ล้างตัวกรอง
           </Link>
+        )}
+        {total > 0 && (
+          // Plain <a>: the export is a file download, not a page.
+          <a
+            href={exportHref}
+            download
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-zinc-600 ring-1 ring-zinc-200 transition hover:bg-white hover:text-zinc-900"
+            title="ดาวน์โหลดรายการตามตัวกรองปัจจุบันเป็นไฟล์ CSV (เปิดด้วย Excel ได้)"
+          >
+            <Download className="size-4" />
+            ส่งออก CSV
+          </a>
         )}
       </div>
       <RequestTable

@@ -54,7 +54,7 @@ function look(a: TimelineActivity): Look {
   }
 }
 
-function title(a: TimelineActivity) {
+export function activityTitle(a: Pick<TimelineActivity, "type" | "toStatus">) {
   switch (a.type) {
     case "CREATED":
       return "แจ้งซ่อม";
@@ -83,7 +83,7 @@ export function ActivityTimeline({ activities }: { activities: TimelineActivity[
             </span>
             <div className="min-w-0 flex-1 pt-1">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                <p className="text-sm font-medium text-zinc-900">{title(a)}</p>
+                <p className="text-sm font-medium text-zinc-900">{activityTitle(a)}</p>
                 <time className="text-xs text-zinc-400" dateTime={a.createdAt.toISOString()} title={formatDateTime(a.createdAt)}>
                   {timeAgo(a.createdAt)}
                 </time>

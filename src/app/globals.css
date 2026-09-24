@@ -112,3 +112,14 @@ body {
 @utility animate-fade-in {
   animation: fade-in 150ms ease-out;
 }
+
+/* Printouts (work orders, QR sticker sheets) */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+@media print {
+  body {
+    background: #fff;
+  }
+}

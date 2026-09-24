@@ -4,6 +4,7 @@ import { LoaderCircle, QrCode } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { FieldError } from "@/components/field-error";
 import { Alert } from "@/components/ui/alert";
+import { FLOOR, LEN } from "@/lib/limits";
 import type { FieldErrors } from "@/lib/validation";
 import { createQrTag } from "./actions";
 
@@ -68,13 +69,30 @@ export function QrTagForm({ buildings, categories }: { buildings: Option[]; cate
           <label htmlFor="qr-floor" className="label">
             ชั้น
           </label>
-          <input id="qr-floor" name="floor" className="input" inputMode="numeric" />
+          <input
+            id="qr-floor"
+            name="floor"
+            type="number"
+            min={FLOOR.min}
+            max={FLOOR.max}
+            step={1}
+            className="input"
+            title="ชั้นใต้ดินใส่ติดลบ เช่น -1 = B1, 0 = G"
+          />
+          <FieldError errors={fieldErrors.floor} />
         </div>
         <div>
           <label htmlFor="qr-location" className="label">
             ห้อง / จุดที่ตั้ง <span className="text-rose-500">*</span>
           </label>
-          <input id="qr-location" name="location" className="input" placeholder="เช่น ห้อง 301" />
+          <input
+            id="qr-location"
+            name="location"
+            className="input"
+            minLength={LEN.location[0]}
+            maxLength={LEN.location[1]}
+            placeholder="เช่น ห้อง 301"
+          />
           <FieldError errors={fieldErrors.location} />
         </div>
       </div>
@@ -82,14 +100,22 @@ export function QrTagForm({ buildings, categories }: { buildings: Option[]; cate
         <label htmlFor="qr-equipment" className="label">
           อุปกรณ์ <span className="font-normal text-zinc-400">(ถ้าเป็น QR ของครุภัณฑ์)</span>
         </label>
-        <input id="qr-equipment" name="equipment" className="input" placeholder="เช่น เครื่องปรับอากาศ 24000 BTU" />
+        <input
+          id="qr-equipment"
+          name="equipment"
+          className="input"
+          maxLength={LEN.equipment[1]}
+          placeholder="เช่น เครื่องปรับอากาศ 24000 BTU"
+        />
+        <FieldError errors={fieldErrors.equipment} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="qr-asset" className="label">
             เลขครุภัณฑ์
           </label>
-          <input id="qr-asset" name="assetNumber" className="input" />
+          <input id="qr-asset" name="assetNumber" className="input" maxLength={LEN.assetNumber[1]} />
+          <FieldError errors={fieldErrors.assetNumber} />
         </div>
         <div>
           <label htmlFor="qr-category" className="label">

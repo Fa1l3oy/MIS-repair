@@ -2,6 +2,7 @@
 
 import { Ban, LoaderCircle, Star } from "lucide-react";
 import { useState, useTransition } from "react";
+import { LEN } from "@/lib/limits";
 import { cancelRequest, rateRequest } from "./actions";
 
 const RATING_WORDS = ["", "ต้องปรับปรุง", "พอใช้", "ดี", "ดีมาก", "ยอดเยี่ยม"];
@@ -36,6 +37,7 @@ export function CancelRequestButton({ requestId }: { requestId: string }) {
         rows={2}
         className="input"
         value={reason}
+        maxLength={LEN.cancelReason[1]}
         onChange={(e) => setReason(e.target.value)}
         placeholder="เหตุผล (ถ้ามี) เช่น แจ้งซ้ำ / อุปกรณ์ใช้งานได้แล้ว"
       />
@@ -115,6 +117,7 @@ export function RatingForm({ requestId }: { requestId: string }) {
         rows={2}
         className="input"
         value={feedback}
+        maxLength={LEN.feedback[1]}
         onChange={(e) => setFeedback(e.target.value)}
         placeholder="ข้อเสนอแนะเพิ่มเติม (ถ้ามี)"
       />

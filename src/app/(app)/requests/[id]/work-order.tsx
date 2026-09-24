@@ -1,6 +1,7 @@
 import { activityTitle } from "@/components/activity-timeline";
 import type { ActivityType, Priority, RequestStatus } from "@/generated/prisma/enums";
 import { formatDateTime, PRIORITY_LABEL, STATUS_LABEL } from "@/lib/labels";
+import { floorText, formatPhone } from "@/lib/limits";
 import type { SlaInfo } from "@/lib/sla";
 
 type WorkOrderRequest = {
@@ -8,7 +9,7 @@ type WorkOrderRequest = {
   equipment: string;
   assetNumber: string | null;
   description: string;
-  floor: string | null;
+  floor: number | null;
   location: string;
   priority: Priority;
   status: RequestStatus;
@@ -73,7 +74,7 @@ export function WorkOrder({
   qr: string;
   printedBy: string;
 }) {
-  const place = [request.building.name, request.floor && `ชั้น ${request.floor}`, request.location].filter(Boolean).join(" · ");
+  const place = [request.building.name, floorText(request.floor), request.location].filter(Boolean).join(" · ");
   const photos = request.images.filter((i) => i.kind === "BEFORE").slice(0, 3);
   const trail = request.activities.filter((a) => a.type === "CREATED" || a.type === "STATUS_CHANGED" || a.type === "ASSIGNED");
   const repairNote = request.activities.findLast((a) => a.toStatus === "COMPLETED")?.message;
@@ -107,7 +108,7 @@ export function WorkOrder({
             {request.reporter.name}
             {request.reporter.department && ` (${request.reporter.department})`}
           </Field>
-          <Field label="โทรผู้แจ้ง">{request.reporter.phone}</Field>
+          <Field label="โทรผู้แจ้ง">{request.reporter.phone && formatPhone(request.reporter.phone)}</Field>
           <Field label="ช่างผู้รับผิดชอบ">{request.assignee?.name}</Field>
           <Field label="ซ่อมเสร็จเมื่อ">{request.completedAt && formatDateTime(request.completedAt)}</Field>
         </dl>

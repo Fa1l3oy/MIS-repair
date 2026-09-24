@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { LEN } from "@/lib/limits";
 import { clearFailures, lockedMinutes, recordFailure } from "@/lib/login-throttle";
 import { prisma } from "@/lib/prisma";
 
@@ -18,6 +19,9 @@ export const authOptions: NextAuthOptions = {
         const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password;
         if (!email || !password) return null;
+        // No account can have a longer email (or a longer password: bcrypt stops at
+        // 72 bytes); rejecting here also keeps oversized keys out of LoginThrottle.
+        if (email.length > LEN.email[1] || password.length > 200) return null;
 
         const wait = await lockedMinutes(email);
         if (wait > 0) {

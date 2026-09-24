@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { LEN, RATING } from "@/lib/limits";
 import { notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { canViewRequest } from "@/lib/requests";
@@ -20,7 +21,11 @@ export async function cancelRequest(requestId: string, reason: string): Promise<
   if (!user) return { ok: false, error: "กรุณาเข้าสู่ระบบใหม่อีกครั้ง" };
   if (!isId(requestId)) return { ok: false, error: "ไม่พบใบแจ้งซ่อม" };
 
-  const parsedReason = z.string().trim().max(500, "เหตุผลยาวเกินไป").safeParse(reason);
+  const parsedReason = z
+    .string()
+    .trim()
+    .max(LEN.cancelReason[1], `เหตุผลยาวได้ไม่เกิน ${LEN.cancelReason[1]} ตัวอักษร`)
+    .safeParse(reason);
   if (!parsedReason.success) return { ok: false, error: parsedReason.error.issues[0].message };
   const message = parsedReason.data || null;
 
@@ -64,7 +69,11 @@ export async function cancelRequest(requestId: string, reason: string): Promise<
   return { ok: true, message: "ยกเลิกใบแจ้งซ่อมแล้ว" };
 }
 
-const commentSchema = z.string().trim().min(1, "กรุณาพิมพ์ข้อความ").max(1000, "ข้อความยาวเกินไป");
+const commentSchema = z
+  .string()
+  .trim()
+  .min(LEN.comment[0], "กรุณาพิมพ์ข้อความ")
+  .max(LEN.comment[1], `ข้อความยาวได้ไม่เกิน ${LEN.comment[1]} ตัวอักษร`);
 
 export async function addComment(requestId: string, text: string): Promise<ActionResult> {
   const user = await currentUser();
@@ -94,8 +103,8 @@ export async function addComment(requestId: string, text: string): Promise<Actio
 }
 
 const ratingSchema = z.object({
-  rating: z.coerce.number().int().min(1, "กรุณาให้คะแนน").max(5),
-  feedback: z.string().trim().max(1000).optional(),
+  rating: z.coerce.number().int().min(RATING.min, "กรุณาให้คะแนน").max(RATING.max),
+  feedback: z.string().trim().max(LEN.feedback[1], `ความคิดเห็นยาวได้ไม่เกิน ${LEN.feedback[1]} ตัวอักษร`).optional(),
 });
 
 export async function rateRequest(requestId: string, input: { rating: number; feedback?: string }): Promise<ActionResult> {

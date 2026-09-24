@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { Alert } from "@/components/ui/alert";
+import { floorText } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { isLoopbackOrigin, qrDataUri, requestOrigin } from "@/lib/qr";
 import { requireUser } from "@/lib/session";
@@ -38,7 +39,7 @@ export default async function QrCodesPage() {
         qr: await qrDataUri(url),
         equipment: t.equipment,
         assetNumber: t.assetNumber,
-        place: [t.building.name, t.floor && `ชั้น ${t.floor}`, t.location].filter(Boolean).join(" · "),
+        place: [t.building.name, floorText(t.floor), t.location].filter(Boolean).join(" · "),
         category: t.category?.name ?? null,
         uses: t._count.requests,
       };

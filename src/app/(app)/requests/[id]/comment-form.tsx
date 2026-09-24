@@ -2,6 +2,7 @@
 
 import { LoaderCircle, SendHorizontal } from "lucide-react";
 import { useState, useTransition } from "react";
+import { LEN } from "@/lib/limits";
 import { addComment } from "./actions";
 
 export function CommentForm({ requestId }: { requestId: string }) {
@@ -31,6 +32,7 @@ export function CommentForm({ requestId }: { requestId: string }) {
           rows={1}
           className="input field-sizing-content max-h-40 min-h-11 resize-none"
           value={text}
+          maxLength={LEN.comment[1]}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             // Ctrl/⌘ + Enter sends; plain Enter keeps adding lines.

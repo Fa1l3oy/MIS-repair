@@ -232,7 +232,7 @@ async function main() {
         equipment: problem.equipment,
         description: problem.description,
         location: `ห้อง ${Math.floor(1 + rand() * 5)}${String(Math.floor(1 + rand() * 12)).padStart(2, "0")}`,
-        floor: String(Math.floor(1 + rand() * 5)),
+        floor: Math.floor(1 + rand() * 5),
         priority,
         status,
         rating,

@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { FieldError } from "@/components/field-error";
 import { Alert } from "@/components/ui/alert";
 import { IconInput } from "@/components/ui/icon-input";
+import { LEN } from "@/lib/limits";
 import type { FieldErrors } from "@/lib/validation";
 import { registerAction } from "./actions";
 
@@ -40,14 +41,14 @@ export function RegisterForm() {
         <label htmlFor="name" className="label">
           ชื่อ-นามสกุล
         </label>
-        <IconInput icon={UserRound} id="name" name="name" required autoComplete="name" placeholder="ชื่อ นามสกุล" />
+        <IconInput icon={UserRound} id="name" name="name" required minLength={LEN.personName[0]} maxLength={LEN.personName[1]} autoComplete="name" placeholder="ชื่อ นามสกุล" />
         <FieldError errors={fieldErrors.name} />
       </div>
       <div>
         <label htmlFor="email" className="label">
           อีเมล
         </label>
-        <IconInput icon={Mail} id="email" name="email" type="email" required autoComplete="email" placeholder="you@example.com" />
+        <IconInput icon={Mail} id="email" name="email" type="email" required maxLength={LEN.email[1]} autoComplete="email" placeholder="you@example.com" />
         <FieldError errors={fieldErrors.email} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -55,14 +56,14 @@ export function RegisterForm() {
           <label htmlFor="phone" className="label">
             เบอร์โทรศัพท์ <span className="font-normal text-zinc-400">(ถ้ามี)</span>
           </label>
-          <IconInput icon={Phone} id="phone" name="phone" type="tel" autoComplete="tel" />
+          <IconInput icon={Phone} id="phone" name="phone" type="tel" inputMode="tel" maxLength={16} autoComplete="tel" placeholder="เช่น 081-234-5678" />
           <FieldError errors={fieldErrors.phone} />
         </div>
         <div>
           <label htmlFor="department" className="label">
             หน่วยงาน/คณะ <span className="font-normal text-zinc-400">(ถ้ามี)</span>
           </label>
-          <IconInput icon={Building2} id="department" name="department" autoComplete="organization" />
+          <IconInput icon={Building2} id="department" name="department" maxLength={LEN.department[1]} autoComplete="organization" />
           <FieldError errors={fieldErrors.department} />
         </div>
       </div>

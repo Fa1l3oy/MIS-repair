@@ -16,6 +16,7 @@ import { MAX_UPLOAD_BYTES, PhotoPicker, totalPhotoBytes, type PickedPhoto } from
 import { Alert } from "@/components/ui/alert";
 import type { RequestStatus, Role } from "@/generated/prisma/enums";
 import { CLOSED_STATUSES, STATUS_LABEL } from "@/lib/labels";
+import { LEN } from "@/lib/limits";
 import { STAFF_TRANSITIONS } from "@/lib/workflow";
 import { acceptRequest, assignRequest, updateRequestStatus } from "./staff-actions";
 
@@ -207,6 +208,7 @@ function StatusForm({
           rows={3}
           className="input"
           value={note}
+          maxLength={LEN.statusNote[1]}
           onChange={(e) => setNote(e.target.value)}
           placeholder={
             next === "COMPLETED"

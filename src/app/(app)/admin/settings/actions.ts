@@ -5,15 +5,16 @@ import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { currentUser } from "@/lib/session";
-import { isId, type ActionResult } from "@/lib/validation";
+import { LEN } from "@/lib/limits";
+import { buildingCodeSchema, isId, text, type ActionResult } from "@/lib/validation";
 
 export type MasterKind = "building" | "category";
 
 const LABEL: Record<MasterKind, string> = { building: "อาคาร", category: "ประเภทงาน" };
 
 const itemSchema = z.object({
-  name: z.string().trim().min(1, "กรุณากรอกชื่อ").max(100, "ชื่อยาวเกินไป"),
-  code: z.string().trim().max(20, "รหัสยาวเกินไป").optional(),
+  name: text(LEN.buildingName, "ชื่อ"), // same limits for buildings and categories
+  code: buildingCodeSchema,
 });
 
 function revalidateMasterData() {
@@ -38,7 +39,7 @@ export async function saveMasterItem(
   if (!isKind(kind) || typeof input !== "object" || input === null) return INVALID;
   if (input.id !== undefined && !isId(input.id)) return INVALID;
 
-  const parsed = itemSchema.safeParse({ name: input.name, code: input.code || undefined });
+  const parsed = itemSchema.safeParse({ name: input.name, code: input.code?.trim() || undefined });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const { name, code } = parsed.data;
 

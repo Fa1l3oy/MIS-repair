@@ -8,6 +8,7 @@ import { SegmentedLinks } from "@/components/ui/segmented";
 import type { RequestStatus } from "@/generated/prisma/enums";
 import { timeAgo } from "@/lib/dates";
 import { CLOSED_STATUSES, formatDateTime } from "@/lib/labels";
+import { floorText } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -115,7 +116,7 @@ export default async function MyRequestsPage({ searchParams }: PageProps<"/reque
                     <MapPin className="size-3.5 shrink-0 text-zinc-400" />
                     <span className="truncate">
                       {r.building.name}
-                      {r.floor && ` · ชั้น ${r.floor}`} · {r.location}
+                      {r.floor != null && ` · ${floorText(r.floor)}`} · {r.location}
                     </span>
                   </p>
                 </div>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { RequestStatus } from "@/generated/prisma/enums";
 import { CLOSED_STATUSES, STATUS_LABEL } from "@/lib/labels";
+import { LEN } from "@/lib/limits";
 import { notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { currentUser, STAFF_ROLES } from "@/lib/session";
@@ -64,7 +65,7 @@ export async function acceptRequest(requestId: string): Promise<ActionResult> {
 const statusSchema = z.object({
   requestId: z.string().min(1),
   status: z.enum(["ACCEPTED", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "REJECTED"], { error: "กรุณาเลือกสถานะ" }),
-  note: z.string().trim().max(1000, "บันทึกยาวเกินไป").optional(),
+  note: z.string().trim().max(LEN.statusNote[1], `บันทึกยาวได้ไม่เกิน ${LEN.statusNote[1]} ตัวอักษร`).optional(),
 });
 
 /** Moves a job along the workflow, optionally attaching "after repair" photos. */

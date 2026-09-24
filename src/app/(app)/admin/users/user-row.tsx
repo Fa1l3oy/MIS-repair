@@ -6,6 +6,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import type { Role } from "@/generated/prisma/enums";
 import { ROLE_LABEL } from "@/lib/labels";
+import { formatPhone } from "@/lib/limits";
 import { ROLES } from "@/lib/validation";
 import { changeUserRole, resetUserPassword, setUserActive } from "./actions";
 
@@ -71,7 +72,7 @@ export function UserRow({ user, isSelf }: { user: Row; isSelf: boolean }) {
       </td>
       <td className="px-4 py-3.5 text-zinc-700">
         {user.department ?? <span className="text-zinc-400">-</span>}
-        {user.phone && <span className="block text-xs text-zinc-400">{user.phone}</span>}
+        {user.phone && <span className="block text-xs text-zinc-400">{formatPhone(user.phone)}</span>}
       </td>
       <td className="px-4 py-3.5 text-xs whitespace-nowrap text-zinc-500 tabular-nums">
         แจ้งซ่อม {user.reported}

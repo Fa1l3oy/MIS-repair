@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Priority, RequestStatus } from "@/generated/prisma/enums";
 import { timeAgo } from "@/lib/dates";
 import { formatDateTime } from "@/lib/labels";
+import { floorText } from "@/lib/limits";
 import { slaInfo } from "@/lib/sla";
 import { PriorityBadge, StatusBadge } from "./badges";
 import { SlaBadge } from "./sla-badge";
@@ -14,7 +15,7 @@ export type RequestRow = {
   code: string;
   equipment: string;
   location: string;
-  floor: string | null;
+  floor: number | null;
   priority: Priority;
   status: RequestStatus;
   createdAt: Date;
@@ -60,7 +61,7 @@ export function RequestTable({ rows, emptyText = "ไม่พบรายกา
                 <td className="px-4 py-3.5 text-zinc-700">
                   {r.building.name}
                   <span className="block text-xs text-zinc-400">
-                    {r.floor && `ชั้น ${r.floor} · `}
+                    {r.floor != null && `${floorText(r.floor)} · `}
                     {r.location}
                   </span>
                 </td>
@@ -111,7 +112,7 @@ export function RequestTable({ rows, emptyText = "ไม่พบรายกา
                   <MapPin className="size-3.5 shrink-0 text-zinc-400" />
                   <span className="truncate">
                     {r.building.name}
-                    {r.floor && ` · ชั้น ${r.floor}`} · {r.location}
+                    {r.floor != null && ` · ${floorText(r.floor)}`} · {r.location}
                   </span>
                 </p>
                 <p className="mt-1.5 truncate text-xs text-zinc-400">

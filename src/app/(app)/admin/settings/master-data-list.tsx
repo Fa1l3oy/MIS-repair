@@ -4,6 +4,7 @@ import { Building2, Check, Pencil, Plus, Tag, Trash2, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
+import { LEN } from "@/lib/limits";
 import { deleteMasterItem, saveMasterItem, setMasterItemActive, type MasterKind } from "./actions";
 
 export type MasterItem = { id: string; name: string; code?: string | null; isActive: boolean; usage: number };
@@ -72,6 +73,7 @@ export function MasterDataList({
                   className="input min-w-0 flex-1 py-2"
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                  maxLength={LEN.buildingName[1]}
                   aria-label="ชื่อ"
                   autoFocus
                 />
@@ -79,7 +81,8 @@ export function MasterDataList({
                   <input
                     className="input w-24 py-2"
                     value={draft.code}
-                    onChange={(e) => setDraft({ ...draft, code: e.target.value })}
+                    onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase() })}
+                    maxLength={LEN.buildingCode[1]}
                     placeholder="รหัส"
                     aria-label="รหัส"
                   />
@@ -152,6 +155,7 @@ export function MasterDataList({
           className="input min-w-0 flex-1"
           value={newItem.name}
           onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+          maxLength={LEN.buildingName[1]}
           placeholder={`เพิ่ม${title}ใหม่`}
           aria-label={`ชื่อ${title}ใหม่`}
         />
@@ -159,7 +163,8 @@ export function MasterDataList({
           <input
             className="input w-24"
             value={newItem.code}
-            onChange={(e) => setNewItem({ ...newItem, code: e.target.value })}
+            onChange={(e) => setNewItem({ ...newItem, code: e.target.value.toUpperCase() })}
+            maxLength={LEN.buildingCode[1]}
             placeholder="รหัส"
             aria-label="รหัส"
           />

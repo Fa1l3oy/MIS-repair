@@ -6,6 +6,7 @@ import { FieldError } from "@/components/field-error";
 import { Alert } from "@/components/ui/alert";
 import { Dialog } from "@/components/ui/dialog";
 import { ROLE_LABEL } from "@/lib/labels";
+import { LEN } from "@/lib/limits";
 import { ROLES, type FieldErrors } from "@/lib/validation";
 import { createUserByAdmin } from "./actions";
 
@@ -52,14 +53,14 @@ export function CreateUserForm() {
             <label htmlFor="new-name" className="label">
               ชื่อ-นามสกุล <span className="text-rose-500">*</span>
             </label>
-            <input id="new-name" name="name" className="input" autoFocus />
+            <input id="new-name" name="name" className="input" minLength={LEN.personName[0]} maxLength={LEN.personName[1]} autoFocus />
             <FieldError errors={fieldErrors.name} />
           </div>
           <div>
             <label htmlFor="new-email" className="label">
               อีเมล <span className="text-rose-500">*</span>
             </label>
-            <input id="new-email" name="email" type="email" className="input" autoComplete="off" />
+            <input id="new-email" name="email" type="email" className="input" maxLength={LEN.email[1]} autoComplete="off" />
             <FieldError errors={fieldErrors.email} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -87,13 +88,13 @@ export function CreateUserForm() {
               <label htmlFor="new-department" className="label">
                 หน่วยงาน
               </label>
-              <input id="new-department" name="department" className="input" />
+              <input id="new-department" name="department" className="input" maxLength={LEN.department[1]} />
             </div>
             <div>
               <label htmlFor="new-phone" className="label">
                 เบอร์โทรศัพท์
               </label>
-              <input id="new-phone" name="phone" type="tel" className="input" />
+              <input id="new-phone" name="phone" type="tel" inputMode="tel" maxLength={16} className="input" placeholder="เช่น 081-234-5678" />
             </div>
           </div>
           <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">

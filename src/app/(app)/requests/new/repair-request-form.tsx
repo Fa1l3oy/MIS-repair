@@ -7,6 +7,7 @@ import { FieldError } from "@/components/field-error";
 import { MAX_UPLOAD_BYTES, PhotoPicker, totalPhotoBytes, type PickedPhoto } from "@/components/photo-picker";
 import { Alert } from "@/components/ui/alert";
 import { PRIORITY_DOT, PRIORITY_LABEL } from "@/lib/labels";
+import { FLOOR, LEN } from "@/lib/limits";
 import { PRIORITIES, type FieldErrors } from "@/lib/validation";
 import { createRepairRequest } from "./actions";
 
@@ -15,7 +16,7 @@ type Option = { id: string; name: string };
 /** Values to pre-fill, e.g. from a scanned QR sticker or an earlier request. */
 export type Prefill = {
   buildingId?: string | null;
-  floor?: string | null;
+  floor?: number | null;
   location?: string | null;
   equipment?: string | null;
   assetNumber?: string | null;
@@ -118,6 +119,8 @@ export function RepairRequestForm({
               id="equipment"
               name="equipment"
               className="input"
+              minLength={LEN.equipment[0]}
+              maxLength={LEN.equipment[1]}
               placeholder="เช่น เครื่องปรับอากาศ, หลอดไฟ, ก๊อกน้ำ"
               defaultValue={prefill.equipment ?? ""}
             />
@@ -147,6 +150,7 @@ export function RepairRequestForm({
               id="assetNumber"
               name="assetNumber"
               className="input"
+              maxLength={LEN.assetNumber[1]}
               placeholder="เช่น 7440-001-0001"
               defaultValue={prefill.assetNumber ?? ""}
             />
@@ -195,9 +199,13 @@ export function RepairRequestForm({
             <input
               id="floor"
               name="floor"
+              type="number"
+              min={FLOOR.min}
+              max={FLOOR.max}
+              step={1}
               className="input"
               placeholder="เช่น 3"
-              inputMode="numeric"
+              title="ชั้นใต้ดินใส่ติดลบ เช่น -1 = B1, 0 = G"
               defaultValue={prefill.floor ?? ""}
             />
             <FieldError errors={fieldErrors.floor} />
@@ -210,6 +218,8 @@ export function RepairRequestForm({
               id="location"
               name="location"
               className="input"
+              minLength={LEN.location[0]}
+              maxLength={LEN.location[1]}
               placeholder="เช่น ห้อง 301, ห้องน้ำชายฝั่งทิศเหนือ"
               defaultValue={prefill.location ?? ""}
             />
@@ -226,6 +236,8 @@ export function RepairRequestForm({
           id="description"
           name="description"
           rows={4}
+          minLength={LEN.description[0]}
+          maxLength={LEN.description[1]}
           className="input resize-y"
           placeholder="อธิบายอาการที่พบ เช่น เปิดไม่ติด มีน้ำรั่ว มีเสียงดังผิดปกติ ตั้งแต่เมื่อไร"
         />

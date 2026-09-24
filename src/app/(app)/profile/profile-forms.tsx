@@ -4,6 +4,7 @@ import { KeyRound, LoaderCircle, UserRound, type LucideIcon } from "lucide-react
 import { useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/alert";
 import { FieldError } from "@/components/field-error";
+import { formatPhone, LEN } from "@/lib/limits";
 import type { ActionResult, FieldErrors } from "@/lib/validation";
 import { changePassword, updateProfile } from "./actions";
 
@@ -65,7 +66,7 @@ export function ProfileForm({
         <label className="label" htmlFor="p-name">
           ชื่อ-นามสกุล <span className="text-rose-500">*</span>
         </label>
-        <input id="p-name" name="name" className="input" defaultValue={profile.name} />
+        <input id="p-name" name="name" className="input" minLength={LEN.personName[0]} maxLength={LEN.personName[1]} defaultValue={profile.name} />
         <FieldError errors={fieldErrors.name} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -73,14 +74,23 @@ export function ProfileForm({
           <label className="label" htmlFor="p-phone">
             เบอร์โทรศัพท์
           </label>
-          <input id="p-phone" name="phone" type="tel" className="input" defaultValue={profile.phone ?? ""} />
+          <input
+            id="p-phone"
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            maxLength={16}
+            className="input"
+            placeholder="เช่น 081-234-5678"
+            defaultValue={profile.phone ? formatPhone(profile.phone) : ""}
+          />
           <FieldError errors={fieldErrors.phone} />
         </div>
         <div>
           <label className="label" htmlFor="p-department">
             หน่วยงาน/คณะ
           </label>
-          <input id="p-department" name="department" className="input" defaultValue={profile.department ?? ""} />
+          <input id="p-department" name="department" className="input" maxLength={LEN.department[1]} defaultValue={profile.department ?? ""} />
           <FieldError errors={fieldErrors.department} />
         </div>
       </div>

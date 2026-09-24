@@ -43,14 +43,16 @@ enum ActivityType {
   RATED
 }
 
+/// Text limits and formats are also enforced by CHECK constraints (migration
+/// field_limits) — see src/lib/limits.ts.
 model User {
   id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
+  name         String   @db.VarChar(100)
+  email        String   @unique @db.VarChar(254) // stored lower-case
+  passwordHash String   @db.VarChar(100) // bcrypt
   role         Role     @default(USER)
-  phone        String?
-  department   String?
+  phone        String?  @db.VarChar(10) // digits only, e.g. 0812345678
+  department   String?  @db.VarChar(100)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -65,8 +67,8 @@ model User {
 
 model Building {
   id        String   @id @default(cuid())
-  name      String   @unique
-  code      String?
+  name      String   @unique @db.VarChar(100)
+  code      String?  @db.VarChar(10) // e.g. B01
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
@@ -76,7 +78,7 @@ model Building {
 
 model Category {
   id        String   @id @default(cuid())
-  name      String   @unique
+  name      String   @unique @db.VarChar(100)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
@@ -88,10 +90,10 @@ model Category {
 /// report form with these details filled in.
 model QrTag {
   id          String   @id // short random code used in the QR URL
-  equipment   String?
-  assetNumber String?
-  floor       String?
-  location    String
+  equipment   String?  @db.VarChar(150)
+  assetNumber String?  @db.VarChar(50)
+  floor       Int?     @db.SmallInt // -5 … 99 (0 = G, negative = basement)
+  location    String   @db.VarChar(150)
   createdAt   DateTime @default(now())
 
   buildingId String
@@ -104,16 +106,16 @@ model QrTag {
 
 model RepairRequest {
   id          String        @id @default(cuid())
-  code        String        @unique // เลขที่ใบแจ้งซ่อม เช่น RP-202609-0001
-  equipment   String // ชื่ออุปกรณ์ที่เสียหาย
-  assetNumber String? // เลขครุภัณฑ์
-  description String
-  floor       String?
-  location    String // ห้อง / จุดที่ตั้ง
+  code        String        @unique @db.VarChar(20) // เลขที่ใบแจ้งซ่อม เช่น RP-202609-0001
+  equipment   String        @db.VarChar(150) // ชื่ออุปกรณ์ที่เสียหาย
+  assetNumber String?       @db.VarChar(50) // เลขครุภัณฑ์
+  description String        @db.VarChar(2000)
+  floor       Int?          @db.SmallInt // ชั้น -5 … 99 (0 = G, ติดลบ = ชั้นใต้ดิน)
+  location    String        @db.VarChar(150) // ห้อง / จุดที่ตั้ง
   priority    Priority      @default(MEDIUM)
   status      RequestStatus @default(PENDING)
-  rating      Int? // 1-5 คะแนนความพึงพอใจหลังซ่อมเสร็จ
-  feedback    String?
+  rating      Int?          @db.SmallInt // 1-5 คะแนนความพึงพอใจหลังซ่อมเสร็จ
+  feedback    String?       @db.VarChar(500)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   completedAt DateTime?
@@ -139,9 +141,9 @@ model RepairRequest {
 
 model RepairImage {
   id        String    @id @default(cuid())
-  filename  String    @unique
-  mimeType  String
-  size      Int
+  filename  String    @unique @db.VarChar(100)
+  mimeType  String    @db.VarChar(50)
+  size      Int // bytes, at most 8 MB
   kind      ImageKind @default(BEFORE)
   createdAt DateTime  @default(now())
 
@@ -156,7 +158,7 @@ model RequestActivity {
   type       ActivityType
   fromStatus RequestStatus?
   toStatus   RequestStatus?
-  message    String?
+  message    String?        @db.VarChar(2000)
   createdAt  DateTime       @default(now())
 
   requestId String
@@ -170,16 +172,16 @@ model RequestActivity {
 /// Failed-login counter per account (see src/lib/login-throttle.ts). Kept in the
 /// database because serverless instances don't share memory.
 model LoginThrottle {
-  key      String   @id // normalised email
+  key      String   @id @db.VarChar(254) // normalised email
   failures Int      @default(0)
   resetAt  DateTime
 }
 
 model Notification {
   id        String   @id @default(cuid())
-  title     String
-  message   String
-  link      String?
+  title     String   @db.VarChar(200)
+  message   String   @db.VarChar(2000)
+  link      String?  @db.VarChar(300) // internal path, e.g. /requests/…
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -192,10 +194,10 @@ model Notification {
 /// A browser/device that receives Web Push notifications for a user.
 model PushSubscription {
   id        String   @id @default(cuid())
-  endpoint  String   @unique // push-service URL; one row per browser
-  p256dh    String
-  auth      String
-  userAgent String?
+  endpoint  String   @unique @db.VarChar(2048) // push-service URL; one row per browser
+  p256dh    String   @db.VarChar(200)
+  auth      String   @db.VarChar(100)
+  userAgent String?  @db.VarChar(300)
   createdAt DateTime @default(now())
 
   userId String

@@ -5,14 +5,15 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { newQrId } from "@/lib/qr";
 import { currentUser } from "@/lib/session";
-import { flattenErrors, formToObject, isId, type ActionResult } from "@/lib/validation";
+import { LEN } from "@/lib/limits";
+import { flattenErrors, floorSchema, formToObject, isId, text, type ActionResult } from "@/lib/validation";
 
 const tagSchema = z.object({
   buildingId: z.string({ error: "กรุณาเลือกอาคาร" }).min(1, "กรุณาเลือกอาคาร"),
-  floor: z.string().trim().max(20).optional(),
-  location: z.string({ error: "กรุณาระบุห้อง/จุดที่ตั้ง" }).trim().min(1, "กรุณาระบุห้อง/จุดที่ตั้ง").max(150),
-  equipment: z.string().trim().max(150).optional(),
-  assetNumber: z.string().trim().max(50).optional(),
+  floor: floorSchema,
+  location: text(LEN.location, "ห้อง/จุดที่ตั้ง"),
+  equipment: text(LEN.equipment, "อุปกรณ์").optional(),
+  assetNumber: text(LEN.assetNumber, "เลขครุภัณฑ์").optional(),
   categoryId: z.string().min(1).optional(),
 });
 

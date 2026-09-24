@@ -26,6 +26,7 @@ import { Alert } from "@/components/ui/alert";
 import { Avatar } from "@/components/ui/avatar";
 import type { RequestStatus } from "@/generated/prisma/enums";
 import { CLOSED_STATUSES, formatDateTime } from "@/lib/labels";
+import { floorText, formatPhone } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { qrDataUri, requestOrigin } from "@/lib/qr";
 import { canViewRequest, isStaff } from "@/lib/requests";
@@ -138,7 +139,7 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
                 <span className="inline-flex items-center gap-1.5">
                   <MapPin className="size-4 text-zinc-400" strokeWidth={1.75} />
                   {request.building.name}
-                  {request.floor && ` · ชั้น ${request.floor}`} · {request.location}
+                  {request.floor != null && ` · ${floorText(request.floor)}`} · {request.location}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <CalendarClock className="size-4 text-zinc-400" strokeWidth={1.75} />
@@ -240,7 +241,7 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
                   {request.building.name}
                 </InfoRow>
                 <InfoRow icon={MapPin} label="ห้อง/สถานที่">
-                  {request.floor && `ชั้น ${request.floor} · `}
+                  {request.floor != null && `${floorText(request.floor)} · `}
                   {request.location}
                 </InfoRow>
                 <InfoRow icon={CalendarClock} label="วันที่แจ้ง">
@@ -287,7 +288,7 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
                             className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-200"
                           >
                             <Phone className="size-3.5" />
-                            {request.reporter.phone}
+                            {formatPhone(request.reporter.phone)}
                           </a>
                         )}
                       </div>
@@ -313,7 +314,7 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
                             className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:underline"
                           >
                             <Phone className="size-3.5" />
-                            {request.assignee.phone}
+                            {formatPhone(request.assignee.phone)}
                           </a>
                         )}
                       </>

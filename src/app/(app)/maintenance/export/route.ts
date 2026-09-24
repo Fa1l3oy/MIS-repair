@@ -1,5 +1,6 @@
 import { csvDate, toCsv } from "@/lib/csv";
 import { PRIORITY_LABEL, STATUS_LABEL } from "@/lib/labels";
+import { floorLabel } from "@/lib/limits";
 import { maintenanceOrderBy, maintenanceWhere, parseMaintenanceFilters } from "@/lib/maintenance-filters";
 import { prisma } from "@/lib/prisma";
 import { isStaff } from "@/lib/requests";
@@ -85,7 +86,7 @@ export async function GET(req: Request) {
         r.equipment,
         r.assetNumber,
         r.building.name,
-        r.floor,
+        r.floor === null ? null : floorLabel(r.floor),
         r.location,
         r.description,
         r.reporter.name,

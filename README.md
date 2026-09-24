@@ -178,7 +178,7 @@ npx tsx --env-file=.env.production.local prisma/seed.ts --production
 
 ## หมายเหตุสำหรับ production
 
-- ตั้ง `NEXTAUTH_SECRET` เป็นค่าสุ่มใหม่ (ถ้าไม่ได้ใช้ Vercel ให้ตั้ง `NEXTAUTH_URL` เป็น URL จริงแบบ https ด้วย)
+- ตั้ง `NEXTAUTH_SECRET` เป็นค่าสุ่มใหม่ (ถ้าไม่ได้ใช้ Vercel ให้ตั้ง `NEXTAUTH_URL` เป็น URL จริงแบบ https ด้วย — QR Code ที่พิมพ์จะชี้ไปที่ URL นี้)
 - สำรองข้อมูลทั้งฐานข้อมูลและรูปภาพ (ในเครื่อง: volume `pgdata` + โฟลเดอร์ `uploads/`, บน Vercel: Neon + Blob store)
 - ตัวนับการ login ผิดเก็บในฐานข้อมูล (ตาราง `LoginThrottle`) จึงใช้ได้แม้รันหลาย instance แบบ serverless
 - การล็อกนับต่ออีเมล (ไม่ใช้ IP เพราะถ้าไม่มี reverse proxy ที่เชื่อถือได้ header IP ปลอมได้) จึงมีข้อแลกเปลี่ยนว่าคนที่รู้อีเมลอาจทำให้บัญชีถูกล็อกชั่วคราวได้ ถ้าติดตั้งหลัง reverse proxy ที่กำหนด IP จริงให้ ควรนับตาม อีเมล + IP แทน

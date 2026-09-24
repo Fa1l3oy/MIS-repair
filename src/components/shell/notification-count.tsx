@@ -1,17 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { createContext, use, useEffect, useRef, useState } from "react";
 
 const POLL_MS = 30_000;
+const CountContext = createContext(0);
 
 /**
- * Unread badge that polls the server, so technicians see new jobs without
- * reloading. When the count goes up the current page is refreshed too, which
- * brings new rows into lists such as the maintenance queue.
+ * Polls the unread-notification count once for the whole shell (sidebar and
+ * mobile tab bar both read it). When the count goes up the current page is
+ * refreshed too, which brings new rows into lists such as the maintenance queue.
  */
-export function NotificationBell({ initialCount }: { initialCount: number }) {
+export function NotificationCountProvider({ initialCount, children }: { initialCount: number; children: React.ReactNode }) {
   const router = useRouter();
   const [count, setCount] = useState(initialCount);
   const [prevInitial, setPrevInitial] = useState(initialCount);
@@ -50,19 +50,21 @@ export function NotificationBell({ initialCount }: { initialCount: number }) {
     };
   }, [router]);
 
+  return <CountContext value={count}>{children}</CountContext>;
+}
+
+export function useNotificationCount() {
+  return use(CountContext);
+}
+
+export function NotificationCountBadge({ className = "" }: { className?: string }) {
+  const count = useNotificationCount();
+  if (count <= 0) return null;
   return (
-    <Link
-      href="/notifications"
-      className="relative flex h-10 w-10 items-center justify-center rounded-lg text-xl text-slate-600 hover:bg-slate-100"
-      aria-label={count > 0 ? `การแจ้งเตือน ${count} รายการที่ยังไม่อ่าน` : "การแจ้งเตือน"}
-      title="การแจ้งเตือน"
+    <span
+      className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-semibold text-white tabular-nums ${className}`}
     >
-      🔔
-      {count > 0 && (
-        <span className="absolute top-1 right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] leading-none font-bold text-white">
-          {count > 99 ? "99+" : count}
-        </span>
-      )}
-    </Link>
+      {count > 99 ? "99+" : count}
+    </span>
   );
 }

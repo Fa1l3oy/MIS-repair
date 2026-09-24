@@ -7,12 +7,12 @@ export const metadata: Metadata = { title: "สมัครสมาชิก" }
 export default function RegisterPage() {
   return (
     <>
-      <h2 className="mb-1 text-xl font-semibold">สมัครสมาชิก</h2>
-      <p className="mb-6 text-sm text-slate-500">สร้างบัญชีเพื่อแจ้งซ่อมและติดตามงาน</p>
+      <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">สร้างบัญชีใหม่</h2>
+      <p className="mt-1.5 mb-8 text-sm text-zinc-500">สมัครเพื่อแจ้งซ่อมและติดตามสถานะงานได้ทุกที่</p>
       <RegisterForm />
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-8 text-center text-sm text-zinc-500">
         มีบัญชีอยู่แล้ว?{" "}
-        <Link href="/login" className="font-medium text-indigo-600 hover:underline">
+        <Link href="/login" className="font-medium text-zinc-900 underline-offset-4 hover:underline">
           เข้าสู่ระบบ
         </Link>
       </p>

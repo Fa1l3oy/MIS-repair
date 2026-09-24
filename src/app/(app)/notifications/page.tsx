@@ -1,5 +1,7 @@
+import { Bell, BellOff, CheckCheck, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { timeAgo } from "@/lib/dates";
 import { formatDateTime } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
@@ -21,12 +23,13 @@ export default async function NotificationsPage() {
     <div className="mx-auto max-w-3xl">
       <PageHeader
         title="การแจ้งเตือน"
-        description={unread > 0 ? `ยังไม่ได้อ่าน ${unread} รายการ` : "อ่านครบทุกรายการแล้ว"}
+        description={unread > 0 ? `ยังไม่ได้อ่าน ${unread} รายการ` : "คุณอ่านครบทุกรายการแล้ว"}
         actions={
           unread > 0 && (
             <form action={markAllNotificationsRead}>
               <button type="submit" className="btn-secondary">
-                ✓ ทำเครื่องหมายว่าอ่านทั้งหมด
+                <CheckCheck className="size-4" />
+                อ่านทั้งหมด
               </button>
             </form>
           )
@@ -34,32 +37,38 @@ export default async function NotificationsPage() {
       />
 
       {notifications.length === 0 ? (
-        <div className="card px-6 py-16 text-center text-slate-500">
-          <p className="mb-2 text-4xl">🔕</p>
-          ยังไม่มีการแจ้งเตือน
-        </div>
+        <EmptyState icon={BellOff} title="ยังไม่มีการแจ้งเตือน" description="เมื่อมีความเคลื่อนไหวของงานซ่อม จะแจ้งให้ทราบที่นี่" />
       ) : (
-        <ul className="card divide-y divide-slate-100 overflow-hidden">
+        <ul className="card divide-y divide-zinc-100 overflow-hidden">
           {notifications.map((n) => (
             <li key={n.id}>
               <form action={openNotification.bind(null, n.id)}>
                 <button
                   type="submit"
-                  className={`flex w-full gap-3 px-4 py-3 text-left transition hover:bg-slate-50 ${n.isRead ? "" : "bg-indigo-50/60"}`}
+                  className={`group flex w-full items-start gap-3.5 px-4 py-4 text-left transition hover:bg-zinc-50 sm:px-5 ${
+                    n.isRead ? "" : "bg-brand-50/40"
+                  }`}
                 >
                   <span
-                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.isRead ? "bg-transparent" : "bg-indigo-600"}`}
-                    aria-hidden
-                  />
+                    className={`relative mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full ${
+                      n.isRead ? "bg-zinc-100 text-zinc-400" : "bg-brand-100 text-brand-600"
+                    }`}
+                  >
+                    <Bell className="size-4" strokeWidth={2} />
+                    {!n.isRead && (
+                      <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-brand-600 ring-2 ring-white" />
+                    )}
+                  </span>
                   <span className="min-w-0 flex-1">
-                    <span className={`block text-sm ${n.isRead ? "text-slate-700" : "font-semibold text-slate-900"}`}>
+                    <span className={`block text-sm ${n.isRead ? "text-zinc-700" : "font-semibold text-zinc-900"}`}>
                       {n.title}
                     </span>
-                    <span className="block text-sm text-slate-500">{n.message}</span>
-                    <span className="mt-0.5 block text-xs text-slate-400" title={formatDateTime(n.createdAt)}>
+                    <span className="mt-0.5 block text-sm text-zinc-500">{n.message}</span>
+                    <span className="mt-1 block text-xs text-zinc-400" title={formatDateTime(n.createdAt)}>
                       {timeAgo(n.createdAt)}
                     </span>
                   </span>
+                  <ChevronRight className="mt-2 size-4 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-zinc-500" />
                 </button>
               </form>
             </li>

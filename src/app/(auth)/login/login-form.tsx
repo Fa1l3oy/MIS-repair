@@ -1,7 +1,10 @@
 "use client";
 
+import { ArrowRight, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import { Alert } from "@/components/ui/alert";
+import { IconInput } from "@/components/ui/icon-input";
 
 export function LoginForm({ callbackUrl, initialError }: { callbackUrl: string; initialError?: string }) {
   const [error, setError] = useState(initialError);
@@ -28,17 +31,31 @@ export function LoginForm({ callbackUrl, initialError }: { callbackUrl: string; 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+      {error && <Alert tone="error">{error}</Alert>}
       <div>
-        <label htmlFor="email" className="label">อีเมล</label>
-        <input id="email" name="email" type="email" required autoComplete="email" className="input" placeholder="you@example.com" />
+        <label htmlFor="email" className="label">
+          อีเมล
+        </label>
+        <IconInput icon={Mail} id="email" name="email" type="email" required autoComplete="email" placeholder="you@example.com" />
       </div>
       <div>
-        <label htmlFor="password" className="label">รหัสผ่าน</label>
-        <input id="password" name="password" type="password" required autoComplete="current-password" className="input" />
+        <label htmlFor="password" className="label">
+          รหัสผ่าน
+        </label>
+        <IconInput
+          icon={LockKeyhole}
+          id="password"
+          name="password"
+          type="password"
+          required
+          autoComplete="current-password"
+          placeholder="••••••••"
+        />
       </div>
-      <button type="submit" disabled={pending} className="btn-primary w-full">
+      <button type="submit" disabled={pending} className="btn-primary h-11 w-full">
+        {pending ? <LoaderCircle className="size-4 animate-spin" /> : null}
         {pending ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+        {!pending && <ArrowRight className="size-4" />}
       </button>
     </form>
   );

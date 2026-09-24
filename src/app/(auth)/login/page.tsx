@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Alert } from "@/components/ui/alert";
 import { safeInternalPath } from "@/lib/safe-path";
 import { LoginForm } from "./login-form";
 
@@ -12,20 +13,17 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   return (
     <>
-      <h2 className="mb-1 text-xl font-semibold">เข้าสู่ระบบ</h2>
-      <p className="mb-6 text-sm text-slate-500">กรอกอีเมลและรหัสผ่านเพื่อใช้งานระบบ</p>
+      <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">ยินดีต้อนรับกลับ</h2>
+      <p className="mt-1.5 mb-8 text-sm text-zinc-500">เข้าสู่ระบบเพื่อแจ้งซ่อมและติดตามงานของคุณ</p>
       {registered && (
-        <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+        <Alert tone="success" className="mb-4">
           สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ
-        </p>
+        </Alert>
       )}
-      <LoginForm
-        callbackUrl={safeInternalPath(callbackUrl)}
-        initialError={initialError}
-      />
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <LoginForm callbackUrl={safeInternalPath(callbackUrl)} initialError={initialError} />
+      <p className="mt-8 text-center text-sm text-zinc-500">
         ยังไม่มีบัญชี?{" "}
-        <Link href="/register" className="font-medium text-indigo-600 hover:underline">
+        <Link href="/register" className="font-medium text-zinc-900 underline-offset-4 hover:underline">
           สมัครสมาชิก
         </Link>
       </p>

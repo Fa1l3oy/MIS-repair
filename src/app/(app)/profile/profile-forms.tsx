@@ -1,6 +1,8 @@
 "use client";
 
+import { KeyRound, LoaderCircle, UserRound, type LucideIcon } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
+import { Alert } from "@/components/ui/alert";
 import { FieldError } from "@/components/field-error";
 import type { ActionResult, FieldErrors } from "@/lib/validation";
 import { changePassword, updateProfile } from "./actions";
@@ -24,13 +26,23 @@ function useFormAction(action: (fd: FormData) => Promise<ActionResult>, resetOnS
   return { ref, onSubmit, fieldErrors, feedback, pending };
 }
 
+function SectionTitle({ icon: Icon, title, description }: { icon: LucideIcon; title: string; description: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600">
+        <Icon className="size-[18px]" strokeWidth={1.75} />
+      </span>
+      <div>
+        <h2 className="font-semibold text-zinc-900">{title}</h2>
+        <p className="text-sm text-zinc-500">{description}</p>
+      </div>
+    </div>
+  );
+}
+
 function Feedback({ feedback }: { feedback?: { ok: boolean; text: string } }) {
   if (!feedback) return null;
-  return (
-    <p className={`rounded-lg px-3 py-2 text-sm ${feedback.ok ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
-      {feedback.text}
-    </p>
-  );
+  return <Alert tone={feedback.ok ? "success" : "error"}>{feedback.text}</Alert>;
 }
 
 export function ProfileForm({
@@ -40,8 +52,8 @@ export function ProfileForm({
 }) {
   const { ref, onSubmit, fieldErrors, feedback, pending } = useFormAction(updateProfile);
   return (
-    <form ref={ref} onSubmit={onSubmit} className="card space-y-4 p-5 sm:p-6" noValidate>
-      <h2 className="font-semibold">ข้อมูลส่วนตัว</h2>
+    <form ref={ref} onSubmit={onSubmit} className="card space-y-5 p-5 sm:p-6" noValidate>
+      <SectionTitle icon={UserRound} title="ข้อมูลส่วนตัว" description="ชื่อและช่องทางติดต่อที่ช่างจะเห็นในใบแจ้งซ่อม" />
       <Feedback feedback={feedback} />
       <div>
         <label className="label" htmlFor="p-email">
@@ -51,7 +63,7 @@ export function ProfileForm({
       </div>
       <div>
         <label className="label" htmlFor="p-name">
-          ชื่อ-นามสกุล *
+          ชื่อ-นามสกุล <span className="text-rose-500">*</span>
         </label>
         <input id="p-name" name="name" className="input" defaultValue={profile.name} />
         <FieldError errors={fieldErrors.name} />
@@ -74,7 +86,8 @@ export function ProfileForm({
       </div>
       <div className="flex justify-end">
         <button type="submit" className="btn-primary" disabled={pending}>
-          {pending ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+          {pending && <LoaderCircle className="size-4 animate-spin" />}
+          บันทึกข้อมูล
         </button>
       </div>
     </form>
@@ -84,8 +97,8 @@ export function ProfileForm({
 export function PasswordForm() {
   const { ref, onSubmit, fieldErrors, feedback, pending } = useFormAction(changePassword, true);
   return (
-    <form ref={ref} onSubmit={onSubmit} className="card space-y-4 p-5 sm:p-6" noValidate>
-      <h2 className="font-semibold">เปลี่ยนรหัสผ่าน</h2>
+    <form ref={ref} onSubmit={onSubmit} className="card space-y-5 p-5 sm:p-6" noValidate>
+      <SectionTitle icon={KeyRound} title="เปลี่ยนรหัสผ่าน" description="ใช้อย่างน้อย 8 ตัวอักษร" />
       <Feedback feedback={feedback} />
       <div>
         <label className="label" htmlFor="pw-current">
@@ -110,7 +123,8 @@ export function PasswordForm() {
       </div>
       <div className="flex justify-end">
         <button type="submit" className="btn-primary" disabled={pending}>
-          {pending ? "กำลังบันทึก..." : "เปลี่ยนรหัสผ่าน"}
+          {pending && <LoaderCircle className="size-4 animate-spin" />}
+          เปลี่ยนรหัสผ่าน
         </button>
       </div>
     </form>

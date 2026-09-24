@@ -121,9 +121,41 @@ src/
 uploads/                    ไฟล์รูปที่อัปโหลด (ไม่อยู่ใน git — ควรสำรองข้อมูลพร้อมฐานข้อมูล)
 ```
 
+## Deploy ขึ้น Vercel
+
+บน Vercel ไม่มีฐานข้อมูลในเครื่องและไม่มีดิสก์ถาวร จึงใช้บริการคู่กันดังนี้
+
+| ส่วน | บน Vercel ใช้ | หมายเหตุ |
+|---|---|---|
+| ฐานข้อมูล | **Neon Postgres** (Vercel Marketplace, มีแผนฟรี) | ได้ `DATABASE_URL` (pooled) + `DATABASE_URL_UNPOOLED` (สำหรับ migrate) อัตโนมัติ |
+| รูปภาพ | **Vercel Blob แบบ private** | ได้ `BLOB_STORE_ID` อัตโนมัติ — รูปยังดูได้เฉพาะผู้มีสิทธิ์ผ่าน `/api/uploads/...` |
+| Region | `sin1` (สิงคโปร์) ใน `vercel.json` | สร้าง DB และ Blob ที่สิงคโปร์ด้วย จะได้เร็ว |
+
+ขั้นตอน (ใช้ [Vercel CLI](https://vercel.com/docs/cli) — `npx vercel ...`)
+
+```bash
+npx vercel login                                   # ยืนยันตัวตนในเบราว์เซอร์
+npx vercel link --yes --project mis-repair          # สร้าง/เชื่อมโปรเจกต์
+npx vercel integration add neon                    # ฐานข้อมูล (เลือก region สิงคโปร์, แผน Free)
+npx vercel blob create-store mis-repair-photos --access private --region sin1 --yes
+npx vercel env add NEXTAUTH_SECRET production      # ใส่ค่าสุ่มยาวๆ (ดูวิธีสร้างใน .env.example)
+npx vercel deploy --prod                           # build จะรัน prisma migrate deploy ให้เอง
+```
+
+จากนั้นสร้างบัญชี admin แรกบนฐานข้อมูลจริง (รหัสผ่านสุ่มและแสดงครั้งเดียว):
+
+```bash
+npx vercel env pull .env.production.local --environment production
+npx tsx --env-file=.env.production.local prisma/seed.ts --production
+```
+
+(ไฟล์ `.env.production.local` มีรหัสฐานข้อมูลจริง ไม่ถูก commit แต่ควรลบทิ้งเมื่อใช้เสร็จ)
+
+ข้อจำกัดของ Vercel ที่ระบบรองรับไว้แล้ว: request หนึ่งครั้งส่งได้ไม่เกิน 4.5 MB → หน้าแจ้งซ่อมย่อรูปแต่ละรูปให้ไม่เกิน ~700 KB และรวมไม่เกิน 4 MB ก่อนส่ง · `npm run db:seed` (รหัส `admin1234`) และ `db:seed:demo` จะไม่ยอมรันกับฐานข้อมูลที่ไม่ได้อยู่ในเครื่อง
+
 ## หมายเหตุสำหรับ production
 
-- ตั้ง `NEXTAUTH_URL` เป็น URL จริง (https) และ `NEXTAUTH_SECRET` เป็นค่าสุ่มใหม่
-- สำรองข้อมูลทั้งฐานข้อมูล (volume `pgdata`) และโฟลเดอร์ `uploads/`
-- ตัวจำกัดการ login ผิดเก็บสถานะในหน่วยความจำของ server หนึ่งตัว ถ้ารันหลาย instance ควรย้ายไปใช้ที่เก็บกลาง เช่น Redis
+- ตั้ง `NEXTAUTH_SECRET` เป็นค่าสุ่มใหม่ (ถ้าไม่ได้ใช้ Vercel ให้ตั้ง `NEXTAUTH_URL` เป็น URL จริงแบบ https ด้วย)
+- สำรองข้อมูลทั้งฐานข้อมูลและรูปภาพ (ในเครื่อง: volume `pgdata` + โฟลเดอร์ `uploads/`, บน Vercel: Neon + Blob store)
+- ตัวนับการ login ผิดเก็บในฐานข้อมูล (ตาราง `LoginThrottle`) จึงใช้ได้แม้รันหลาย instance แบบ serverless
 - การล็อกนับต่ออีเมล (ไม่ใช้ IP เพราะถ้าไม่มี reverse proxy ที่เชื่อถือได้ header IP ปลอมได้) จึงมีข้อแลกเปลี่ยนว่าคนที่รู้อีเมลอาจทำให้บัญชีถูกล็อกชั่วคราวได้ ถ้าติดตั้งหลัง reverse proxy ที่กำหนด IP จริงให้ ควรนับตาม อีเมล + IP แทน

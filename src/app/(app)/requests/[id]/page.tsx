@@ -1,4 +1,5 @@
 import {
+  AlarmClock,
   ArrowLeft,
   Building2,
   CalendarClock,
@@ -17,6 +18,7 @@ import { notFound } from "next/navigation";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { PriorityBadge, StatusBadge } from "@/components/badges";
 import { PhotoGallery } from "@/components/photo-gallery";
+import { SlaBadge } from "@/components/sla-badge";
 import { StatusStepper } from "@/components/status-stepper";
 import { Alert } from "@/components/ui/alert";
 import { Avatar } from "@/components/ui/avatar";
@@ -25,6 +27,7 @@ import { formatDateTime } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
 import { canViewRequest, isStaff } from "@/lib/requests";
 import { requireUser, STAFF_ROLES } from "@/lib/session";
+import { SLA_HOURS, slaInfo } from "@/lib/sla";
 import { CANCELLABLE_STATUSES } from "@/lib/workflow";
 import { CommentForm } from "./comment-form";
 import { CancelRequestButton, RatingForm, RatingStars } from "./reporter-actions";
@@ -91,6 +94,7 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
   for (const a of request.activities) {
     if (a.toStatus && a.type !== "CREATED" && !reachedAt[a.toStatus]) reachedAt[a.toStatus] = a.createdAt;
   }
+  const sla = slaInfo(request);
   const hasActions = isStaff(user) || (isReporter && request.status === "COMPLETED");
   const closingNote =
     request.status === "REJECTED" || request.status === "CANCELLED"
@@ -111,6 +115,7 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
           <span className="chip">{request.code}</span>
           <StatusBadge status={request.status} />
           <PriorityBadge priority={request.priority} withLabel />
+          <SlaBadge sla={sla} />
         </div>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-[28px]">{request.equipment}</h1>
         <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-500">
@@ -214,6 +219,14 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
               <InfoRow icon={CalendarClock} label="วันที่แจ้ง">
                 {formatDateTime(request.createdAt)}
               </InfoRow>
+              {sla.state !== "none" && (
+                <InfoRow icon={AlarmClock} label="กำหนดเสร็จ">
+                  {formatDateTime(sla.dueAt)}
+                  <span className="block text-xs font-normal text-zinc-400">
+                    ภายใน {SLA_HOURS[request.priority] >= 48 ? `${SLA_HOURS[request.priority] / 24} วัน` : `${SLA_HOURS[request.priority]} ชม.`} ตามความเร่งด่วน
+                  </span>
+                </InfoRow>
+              )}
               {request.completedAt && (
                 <InfoRow icon={CircleCheck} label="ซ่อมเสร็จ">
                   {formatDateTime(request.completedAt)}

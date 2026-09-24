@@ -1,4 +1,4 @@
-import { CircleCheck, Inbox, Search, UserCheck, Wrench, X } from "lucide-react";
+import { AlarmClock, CircleCheck, Inbox, Search, UserCheck, Wrench, X } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
@@ -12,6 +12,7 @@ import { startOfTodayBangkok } from "@/lib/dates";
 import { CLOSED_STATUSES, PRIORITY_LABEL, STATUS_LABEL, STATUS_ORDER } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
 import { requireUser, STAFF_ROLES } from "@/lib/session";
+import { overdueWhere } from "@/lib/sla";
 import { PRIORITIES } from "@/lib/validation";
 
 export const metadata: Metadata = { title: "งานซ่อมบำรุง" };
@@ -46,6 +47,8 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
     | undefined;
   const statusWhere = status === "ACTIVE" ? { in: ACTIVE_STATUSES } : status;
   const doneToday = tab === "all" && sp.done === "today";
+  const overdueOnly = sp.sla === "overdue";
+  const now = new Date();
   const pageNum = Number(sp.page);
   const page = Number.isSafeInteger(pageNum) && pageNum > 0 ? pageNum : 1; // Prisma's skip must be an integer
 
@@ -54,6 +57,8 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
     ...(tab === "mine" && { assigneeId: user.id, status: statusWhere ?? { in: OPEN_STATUSES } }),
     ...(tab === "all" && statusWhere && { status: statusWhere }),
     ...(doneToday && { status: "COMPLETED", completedAt: { gte: startOfTodayBangkok() } }),
+    // AND keeps the SLA condition separate from the search OR below.
+    ...(overdueOnly && { AND: [overdueWhere(now)] }),
     ...(buildingId && { buildingId }),
     ...(priority && { priority }),
     ...(q && {
@@ -85,18 +90,20 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
       prisma.repairRequest.count({ where: { assigneeId: user.id, status: { in: OPEN_STATUSES } } }),
       prisma.repairRequest.count({ where: { status: { in: ACTIVE_STATUSES } } }),
       prisma.repairRequest.count({ where: { status: "COMPLETED", completedAt: { gte: startOfTodayBangkok() } } }),
+      prisma.repairRequest.count({ where: overdueWhere(now) }),
     ]),
   ]);
   buildings.sort((a, b) => a.name.localeCompare(b.name, "th"));
-  const [pendingCount, mineCount, inProgressCount, doneTodayCount] = counts;
+  const [pendingCount, mineCount, inProgressCount, doneTodayCount, overdueCount] = counts;
 
   const stats = [
     { label: "งานใหม่รอรับ", value: pendingCount, href: "/maintenance?tab=new", tone: "sky", icon: Inbox },
     { label: "งานของฉันที่ค้างอยู่", value: mineCount, href: "/maintenance?tab=mine", tone: "brand", icon: UserCheck },
     { label: "อยู่ระหว่างดำเนินการ", value: inProgressCount, href: "/maintenance?tab=all&status=ACTIVE", tone: "amber", icon: Wrench },
+    { label: "เกินกำหนด", value: overdueCount, href: "/maintenance?tab=all&sla=overdue", tone: "rose", icon: AlarmClock },
     { label: "ซ่อมเสร็จวันนี้", value: doneTodayCount, href: "/maintenance?tab=all&done=today", tone: "emerald", icon: CircleCheck },
   ] as const;
-  const filtered = Boolean(q || buildingId || priority || status || doneToday);
+  const filtered = Boolean(q || buildingId || priority || status || doneToday || overdueOnly);
 
   const hrefFor = (p: number) => {
     const params = new URLSearchParams({ tab });
@@ -105,6 +112,7 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
     if (priority) params.set("priority", priority);
     if (status) params.set("status", status);
     if (doneToday) params.set("done", "today");
+    if (overdueOnly) params.set("sla", "overdue");
     params.set("page", String(p));
     return `/maintenance?${params}`;
   };
@@ -113,7 +121,7 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
     <>
       <PageHeader title="งานซ่อมบำรุง" description="รับงานใหม่ อัปเดตสถานะ และติดตามงานซ่อมทั้งหมด" />
 
-      <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
         {stats.map((s) => (
           <StatCard key={s.label} label={s.label} value={s.value} href={s.href} tone={s.tone} icon={s.icon} />
         ))}
@@ -133,6 +141,7 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
 
       <form className="card mb-5 flex flex-col gap-3 p-3 lg:flex-row lg:items-center" action="/maintenance">
         <input type="hidden" name="tab" value={tab} />
+        {overdueOnly && <input type="hidden" name="sla" value="overdue" />}
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-zinc-400" />
           <input
@@ -185,6 +194,7 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
         {doneToday && (
           <span className="badge bg-emerald-50 text-emerald-700 ring-emerald-600/15">เฉพาะงานที่ซ่อมเสร็จวันนี้</span>
         )}
+        {overdueOnly && <span className="badge bg-rose-50 text-rose-700 ring-rose-600/20">เฉพาะงานที่เกินกำหนด</span>}
         {filtered && (
           <Link
             href={`/maintenance?tab=${tab}`}

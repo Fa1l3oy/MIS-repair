@@ -1,10 +1,11 @@
 import "server-only";
 import { requestRowSelect } from "@/components/request-table";
 import { Prisma } from "@/generated/prisma/client";
-import type { RequestStatus } from "@/generated/prisma/enums";
+import type { Priority, RequestStatus } from "@/generated/prisma/enums";
 import { startOfTodayBangkok } from "@/lib/dates";
 import { CLOSED_STATUSES } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
+import { overdueWhere, SLA_HOURS } from "@/lib/sla";
 
 export const RANGES = [
   { key: "7", label: "7 วันล่าสุด", days: 7 },
@@ -96,6 +97,12 @@ function sinceSql(from: Date | null) {
   return from ? Prisma.sql`AND r."createdAt" >= (${from.toISOString()}::timestamptz AT TIME ZONE 'UTC')` : Prisma.empty;
 }
 
+/** SQL expression: the SLA target in hours for the row's priority (from lib/sla.ts). */
+const slaHoursSql = Prisma.sql`CASE r.priority::text ${Prisma.join(
+  (Object.keys(SLA_HOURS) as Priority[]).map((p) => Prisma.sql`WHEN ${p} THEN ${SLA_HOURS[p]}::int`),
+  " ",
+)} END`;
+
 export async function getDashboardData(rangeKey: RangeKey) {
   const range = RANGES.find((r) => r.key === rangeKey) ?? RANGES[1];
   const from = range.days ? new Date(startOfTodayBangkok().getTime() - (range.days - 1) * DAY_MS) : null;
@@ -106,15 +113,17 @@ export async function getDashboardData(rangeKey: RangeKey) {
   // Count only inside the selected range; the all-time view charts the last 12 months.
   const trendCountedFrom = bucket === "month" || !from ? trendFrom : from;
 
-  const [total, byStatus, byBuilding, byCategory, ratingAgg, repairTime, trendRows, techRows, recent, buildings, categories] =
+  const [total, byStatus, byBuilding, byCategory, ratingAgg, repairTime, trendRows, techRows, recent, buildings, categories, overdueNow] =
     await Promise.all([
       prisma.repairRequest.count({ where }),
       prisma.repairRequest.groupBy({ by: ["status"], where, _count: { _all: true } }),
       prisma.repairRequest.groupBy({ by: ["buildingId"], where, _count: { _all: true } }),
       prisma.repairRequest.groupBy({ by: ["categoryId"], where, _count: { _all: true } }),
       prisma.repairRequest.aggregate({ where: { ...where, rating: { not: null } }, _avg: { rating: true }, _count: { rating: true } }),
-      prisma.$queryRaw<{ avg_hours: number | null }[]>`
-        SELECT AVG(EXTRACT(EPOCH FROM (r."completedAt" - r."createdAt")) / 3600)::float AS avg_hours
+      prisma.$queryRaw<{ avg_hours: number | null; completed: number; on_time: number }[]>`
+        SELECT AVG(EXTRACT(EPOCH FROM (r."completedAt" - r."createdAt")) / 3600)::float AS avg_hours,
+               COUNT(*)::int AS completed,
+               COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM (r."completedAt" - r."createdAt")) / 3600 <= ${slaHoursSql})::int AS on_time
         FROM "RepairRequest" r
         WHERE r.status = 'COMPLETED' AND r."completedAt" IS NOT NULL ${sinceSql(from)}`,
       prisma.$queryRaw<{ bucket: string; count: number }[]>`
@@ -140,6 +149,8 @@ export async function getDashboardData(rangeKey: RangeKey) {
       prisma.repairRequest.findMany({ where, orderBy: { createdAt: "desc" }, take: 8, select: requestRowSelect }),
       prisma.building.findMany({ select: { id: true, name: true } }),
       prisma.category.findMany({ select: { id: true, name: true } }),
+      // Live figure, independent of the selected range.
+      prisma.repairRequest.count({ where: overdueWhere() }),
     ]);
 
   const statusCount = (s: RequestStatus) => byStatus.find((g) => g.status === s)?._count._all ?? 0;
@@ -160,6 +171,8 @@ export async function getDashboardData(rangeKey: RangeKey) {
       completed,
       completionRate: decided ? completed / decided : null,
       avgRepairHours: repairTime[0]?.avg_hours ?? null,
+      onTimeRate: repairTime[0]?.completed ? repairTime[0].on_time / repairTime[0].completed : null,
+      overdueNow,
       avgRating: ratingAgg._avg.rating,
       ratingCount: ratingAgg._count.rating,
     },

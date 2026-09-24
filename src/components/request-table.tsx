@@ -3,7 +3,9 @@ import Link from "next/link";
 import type { Priority, RequestStatus } from "@/generated/prisma/enums";
 import { timeAgo } from "@/lib/dates";
 import { formatDateTime } from "@/lib/labels";
+import { slaInfo } from "@/lib/sla";
 import { PriorityBadge, StatusBadge } from "./badges";
+import { SlaBadge } from "./sla-badge";
 import { Avatar } from "./ui/avatar";
 import { EmptyState } from "./ui/empty-state";
 
@@ -16,6 +18,7 @@ export type RequestRow = {
   priority: Priority;
   status: RequestStatus;
   createdAt: Date;
+  completedAt: Date | null;
   building: { name: string };
   category: { name: string };
   reporter: { name: string };
@@ -78,8 +81,13 @@ export function RequestTable({ rows, emptyText = "ไม่พบรายกา
                     </span>
                   </span>
                 </td>
-                <td className="px-5 py-3.5 text-right whitespace-nowrap text-zinc-500" title={formatDateTime(r.createdAt)}>
-                  {timeAgo(r.createdAt)}
+                <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                  <span className="block text-zinc-500" title={formatDateTime(r.createdAt)}>
+                    {timeAgo(r.createdAt)}
+                  </span>
+                  <span className="mt-0.5 block">
+                    <SlaBadge sla={slaInfo(r)} variant="text" />
+                  </span>
                 </td>
               </tr>
             ))}
@@ -110,6 +118,9 @@ export function RequestTable({ rows, emptyText = "ไม่พบรายกา
                   {r.reporter.name} · {timeAgo(r.createdAt)}
                   {r.assignee && ` · ช่าง: ${r.assignee.name}`}
                 </p>
+                <div className="mt-1">
+                  <SlaBadge sla={slaInfo(r)} variant="text" />
+                </div>
               </div>
               <ChevronRight className="size-4 shrink-0 text-zinc-300" />
             </Link>
@@ -129,6 +140,7 @@ export const requestRowSelect = {
   priority: true,
   status: true,
   createdAt: true,
+  completedAt: true,
   building: { select: { name: true } },
   category: { select: { name: true } },
   reporter: { select: { name: true } },

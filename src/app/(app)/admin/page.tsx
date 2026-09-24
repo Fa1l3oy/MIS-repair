@@ -1,4 +1,4 @@
-import { ArrowRight, CircleCheck, ClipboardList, Hourglass, Star, Timer } from "lucide-react";
+import { AlarmClock, ArrowRight, CircleCheck, ClipboardList, Hourglass, Star, Timer } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BarList, ColumnChart } from "@/components/charts";
@@ -52,15 +52,29 @@ export default async function AdminDashboardPage({ searchParams }: PageProps<"/a
         }
       />
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:gap-4 xl:grid-cols-6">
         <StatCard label="ใบแจ้งซ่อม" value={nf.format(kpis.total)} hint={data.range.label} icon={ClipboardList} />
-        <StatCard label="ยังไม่ปิดงาน" value={nf.format(kpis.open)} hint="รอรับเรื่อง / กำลังซ่อม" icon={Hourglass} tone="amber" />
+        <StatCard
+          label="ยังไม่ปิดงาน"
+          value={nf.format(kpis.open)}
+          hint={kpis.overdueNow > 0 ? `เกินกำหนดขณะนี้ ${nf.format(kpis.overdueNow)} งาน` : "ไม่มีงานเกินกำหนด"}
+          icon={Hourglass}
+          tone="amber"
+          href={kpis.overdueNow > 0 ? "/maintenance?tab=all&sla=overdue" : undefined}
+        />
         <StatCard
           label="ซ่อมเสร็จ"
           value={nf.format(kpis.completed)}
           hint={kpis.completionRate === null ? undefined : `${Math.round(kpis.completionRate * 100)}% ของงานที่ปิดแล้ว`}
           icon={CircleCheck}
           tone="emerald"
+        />
+        <StatCard
+          label="ซ่อมทันเวลา"
+          value={kpis.onTimeRate === null ? "-" : `${Math.round(kpis.onTimeRate * 100)}%`}
+          hint="เสร็จภายในกำหนด SLA"
+          icon={AlarmClock}
+          tone="rose"
         />
         <StatCard label="เวลาซ่อมเฉลี่ย" value={formatHours(kpis.avgRepairHours)} hint="ตั้งแต่แจ้งจนซ่อมเสร็จ" icon={Timer} tone="sky" />
         <StatCard

@@ -117,6 +117,7 @@ export function CommandPalette({ role }: { role: Role }) {
     setOpen(false);
     setQuery("");
     setFound([]);
+    setLoading(false);
     setActive(0);
   }
 
@@ -167,7 +168,11 @@ export function CommandPalette({ role }: { role: Role }) {
             onChange={(e) => {
               setQuery(e.target.value);
               setActive(0);
-              if (!e.target.value.trim()) setFound([]);
+              if (!e.target.value.trim()) {
+                // The in-flight search is aborted, so its own finally won't clear these.
+                setFound([]);
+                setLoading(false);
+              }
             }}
             onKeyDown={(e) => {
               if (e.key === "ArrowDown") {

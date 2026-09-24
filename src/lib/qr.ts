@@ -22,8 +22,19 @@ export async function qrDataUri(text: string) {
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
-/** Public origin of the current request (works behind Vercel / proxies and on a LAN IP). */
+/**
+ * Public origin for links printed in QR codes. A configured NEXTAUTH_URL wins
+ * (self-hosted production), so a Host header can't change what gets printed;
+ * otherwise the current request's origin (Vercel, proxies, a LAN IP in dev).
+ */
 export async function requestOrigin() {
+  if (process.env.NEXTAUTH_URL) {
+    try {
+      return new URL(process.env.NEXTAUTH_URL).origin;
+    } catch {
+      // malformed: fall back to the request
+    }
+  }
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");

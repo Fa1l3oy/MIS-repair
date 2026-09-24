@@ -36,6 +36,18 @@ export function isPushServiceEndpoint(endpoint: string) {
 
 export type PushMessage = { title: string; body: string; url?: string };
 
+/** Push services reject payloads over ~4 KB; a notification only shows a few lines anyway. */
+function clip(text: string, max: number) {
+  if (text.length <= max) return text;
+  // Cut between whole characters so Thai vowel/tone marks aren't split off.
+  let cut = "";
+  for (const { segment } of new Intl.Segmenter("th", { granularity: "grapheme" }).segment(text)) {
+    if (cut.length + segment.length > max - 1) break;
+    cut += segment;
+  }
+  return `${cut.trimEnd()}…`;
+}
+
 /**
  * Sends a notification to every browser the users have turned push on for.
  * Subscriptions the push service reports as gone are deleted. Never throws.
@@ -57,7 +69,13 @@ export async function sendPush(userIds: string[], message: PushMessage) {
     const gone: string[] = [];
     await Promise.all(
       subscriptions.map(async (s) => {
-        const payload = JSON.stringify({ ...message, tag: message.url, unread: unreadBy.get(s.userId) ?? 0 });
+        const payload = JSON.stringify({
+          title: clip(message.title, 100),
+          body: clip(message.body, 300),
+          url: message.url,
+          tag: message.url,
+          unread: unreadBy.get(s.userId) ?? 0,
+        });
         try {
           await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, {
             TTL: 24 * 60 * 60, // drop it if the device stays offline for a day

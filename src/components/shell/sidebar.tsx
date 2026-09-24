@@ -41,7 +41,7 @@ export function Sidebar({ user }: { user: ShellUser }) {
   const active = activeHref(pathname, [...sections.flatMap((s) => s.items), NOTIFICATIONS, PROFILE]);
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-zinc-200/80 bg-white lg:flex">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-zinc-200/80 bg-white lg:flex print:hidden">
       <Link href="/" className="flex h-16 items-center gap-3 px-5">
         <BrandMark />
         <BrandName />

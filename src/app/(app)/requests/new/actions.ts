@@ -37,9 +37,10 @@ export async function createRepairRequest(formData: FormData): Promise<ActionRes
   }
   const data = parsed.data;
 
-  const [building, category] = await Promise.all([
+  const [building, category, qrTag] = await Promise.all([
     prisma.building.findFirst({ where: { id: data.buildingId, isActive: true }, select: { id: true } }),
     prisma.category.findFirst({ where: { id: data.categoryId, isActive: true }, select: { id: true } }),
+    data.qrTagId ? prisma.qrTag.findUnique({ where: { id: data.qrTagId }, select: { id: true } }) : null,
   ]);
   if (!building) return { ok: false, error: "ไม่พบอาคารที่เลือก", fieldErrors: { buildingId: ["ไม่พบอาคารที่เลือก"] } };
   if (!category) return { ok: false, error: "ไม่พบประเภทงานที่เลือก", fieldErrors: { categoryId: ["ไม่พบประเภทงานที่เลือก"] } };
@@ -68,6 +69,7 @@ export async function createRepairRequest(formData: FormData): Promise<ActionRes
             priority: data.priority,
             buildingId: data.buildingId,
             categoryId: data.categoryId,
+            qrTagId: qrTag?.id, // ignored if the sticker was deleted meanwhile
             reporterId: user.id,
             images: { create: saved.map((s) => ({ ...s, kind: "BEFORE" as const, uploadedById: user.id })) },
             activities: { create: { type: "CREATED", toStatus: "PENDING", actorId: user.id } },

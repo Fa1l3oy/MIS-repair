@@ -1,6 +1,7 @@
 import {
   ClipboardList,
   LayoutDashboard,
+  QrCode,
   Settings,
   UserRound,
   Users,
@@ -26,6 +27,7 @@ export function navSections(role: Role): NavSection[] {
       items: [
         DASHBOARD,
         { href: "/admin/users", label: "จัดการผู้ใช้", icon: Users },
+        { href: "/admin/qr-codes", label: "QR Code จุดแจ้งซ่อม", icon: QrCode },
         { href: "/admin/settings", label: "ตั้งค่าข้อมูล", icon: Settings },
       ],
     });

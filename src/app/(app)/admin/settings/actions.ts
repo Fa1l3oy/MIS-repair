@@ -80,6 +80,9 @@ export async function deleteMasterItem(kind: MasterKind, id: string): Promise<Ac
   if (await prisma.repairRequest.count({ where })) {
     return { ok: false, error: "มีใบแจ้งซ่อมที่อ้างอิงอยู่ ไม่สามารถลบได้ ให้ปิดการใช้งานแทน" };
   }
+  if (kind === "building" && (await prisma.qrTag.count({ where: { buildingId: id } }))) {
+    return { ok: false, error: "มี QR Code ของอาคารนี้อยู่ กรุณาลบ QR Code ก่อน หรือปิดการใช้งานแทน" };
+  }
   if (kind === "building") await prisma.building.deleteMany({ where: { id } });
   else await prisma.category.deleteMany({ where: { id } });
   revalidateMasterData();

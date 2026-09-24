@@ -9,6 +9,8 @@ import {
   Mail,
   MapPin,
   Phone,
+  QrCode,
+  RotateCcw,
   Tag,
   type LucideIcon,
 } from "lucide-react";
@@ -23,7 +25,7 @@ import { StatusStepper } from "@/components/status-stepper";
 import { Alert } from "@/components/ui/alert";
 import { Avatar } from "@/components/ui/avatar";
 import type { RequestStatus } from "@/generated/prisma/enums";
-import { formatDateTime } from "@/lib/labels";
+import { CLOSED_STATUSES, formatDateTime } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
 import { canViewRequest, isStaff } from "@/lib/requests";
 import { requireUser, STAFF_ROLES } from "@/lib/session";
@@ -111,24 +113,42 @@ export default async function RequestDetailPage({ params, searchParams }: PagePr
           <ArrowLeft className="size-4" />
           กลับไปยังรายการ
         </Link>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="chip">{request.code}</span>
-          <StatusBadge status={request.status} />
-          <PriorityBadge priority={request.priority} withLabel />
-          <SlaBadge sla={sla} />
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="chip">{request.code}</span>
+              <StatusBadge status={request.status} />
+              <PriorityBadge priority={request.priority} withLabel />
+              <SlaBadge sla={sla} />
+              {request.qrTagId && (
+                <span className="badge bg-zinc-100 text-zinc-600 ring-zinc-500/15" title="แจ้งโดยการสแกน QR Code">
+                  <QrCode className="size-3.5" />
+                  ผ่าน QR
+                </span>
+              )}
+            </div>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-[28px]">{request.equipment}</h1>
+            <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-500">
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="size-4 text-zinc-400" strokeWidth={1.75} />
+                {request.building.name}
+                {request.floor && ` · ชั้น ${request.floor}`} · {request.location}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarClock className="size-4 text-zinc-400" strokeWidth={1.75} />
+                แจ้งเมื่อ {formatDateTime(request.createdAt)}
+              </span>
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2 print:hidden">
+            {CLOSED_STATUSES.includes(request.status) && (
+              <Link href={`/requests/new?from=${request.id}`} className="btn-secondary">
+                <RotateCcw className="size-4" />
+                แจ้งซ่อมจุดนี้อีกครั้ง
+              </Link>
+            )}
+          </div>
         </div>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-[28px]">{request.equipment}</h1>
-        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-500">
-          <span className="inline-flex items-center gap-1.5">
-            <MapPin className="size-4 text-zinc-400" strokeWidth={1.75} />
-            {request.building.name}
-            {request.floor && ` · ชั้น ${request.floor}`} · {request.location}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <CalendarClock className="size-4 text-zinc-400" strokeWidth={1.75} />
-            แจ้งเมื่อ {formatDateTime(request.createdAt)}
-          </span>
-        </p>
       </div>
 
       {created && (

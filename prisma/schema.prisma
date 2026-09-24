@@ -70,6 +70,7 @@ model Building {
   createdAt DateTime @default(now())
 
   requests RepairRequest[]
+  qrTags   QrTag[]
 }
 
 model Category {
@@ -77,6 +78,25 @@ model Category {
   name      String   @unique
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+
+  requests RepairRequest[]
+  qrTags   QrTag[]
+}
+
+/// A printed QR sticker for a place or asset. Scanning /q/<id> opens the
+/// report form with these details filled in.
+model QrTag {
+  id          String   @id // short random code used in the QR URL
+  equipment   String?
+  assetNumber String?
+  floor       String?
+  location    String
+  createdAt   DateTime @default(now())
+
+  buildingId String
+  building   Building  @relation(fields: [buildingId], references: [id])
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
 
   requests RepairRequest[]
 }
@@ -105,6 +125,8 @@ model RepairRequest {
   reporter   User     @relation("Reporter", fields: [reporterId], references: [id])
   assigneeId String?
   assignee   User?    @relation("Assignee", fields: [assigneeId], references: [id])
+  qrTagId    String? // set when reported by scanning a QR sticker
+  qrTag      QrTag?   @relation(fields: [qrTagId], references: [id], onDelete: SetNull)
 
   images     RepairImage[]
   activities RequestActivity[]

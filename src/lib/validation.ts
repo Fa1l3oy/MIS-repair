@@ -79,6 +79,7 @@ export const createRequestSchema = z.object({
   floor: z.string().trim().max(20).optional(),
   location: z.string({ error: "กรุณาระบุห้อง/สถานที่" }).trim().min(1, "กรุณาระบุห้อง/สถานที่").max(150),
   priority: z.enum(PRIORITIES).default("MEDIUM"),
+  qrTagId: z.string().max(32).optional(),
   description: z
     .string({ error: "กรุณาอธิบายอาการเสีย" })
     .trim()

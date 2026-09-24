@@ -11,10 +11,12 @@ export async function AppShell({ user, children }: { user: Session["user"]; chil
   return (
     <NotificationCountProvider initialCount={unread}>
       <Sidebar user={shellUser} />
-      <div className="min-h-screen lg:pl-64">
+      <div className="min-h-screen lg:pl-64 print:pl-0">
         <MobileNav user={shellUser} />
         {/* Bottom padding keeps content clear of the mobile tab bar. */}
-        <main className="mx-auto w-full max-w-6xl px-4 pt-6 pb-32 sm:px-6 lg:px-10 lg:pt-10 lg:pb-14">{children}</main>
+        <main className="mx-auto w-full max-w-6xl px-4 pt-6 pb-32 sm:px-6 lg:px-10 lg:pt-10 lg:pb-14 print:max-w-none print:p-0">
+          {children}
+        </main>
       </div>
     </NotificationCountProvider>
   );

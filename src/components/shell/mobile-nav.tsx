@@ -51,7 +51,7 @@ export function MobileNav({ user }: { user: ShellUser }) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-zinc-200/70 bg-white/85 px-4 backdrop-blur-md lg:hidden">
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-zinc-200/70 bg-white/85 px-4 backdrop-blur-md lg:hidden print:hidden">
         <Link href="/" className="flex items-center gap-2.5">
           <BrandMark className="size-8" />
           <BrandName />
@@ -63,7 +63,7 @@ export function MobileNav({ user }: { user: ShellUser }) {
 
       <nav
         aria-label="เมนูหลัก"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200/70 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200/70 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden print:hidden"
       >
         <div className="mx-auto grid max-w-md grid-cols-5 items-end px-2">
           <TabLink item={left} active={active === left.href} />

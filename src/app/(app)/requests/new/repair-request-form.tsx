@@ -12,6 +12,17 @@ import { createRepairRequest } from "./actions";
 
 type Option = { id: string; name: string };
 
+/** Values to pre-fill, e.g. from a scanned QR sticker or an earlier request. */
+export type Prefill = {
+  buildingId?: string | null;
+  floor?: string | null;
+  location?: string | null;
+  equipment?: string | null;
+  assetNumber?: string | null;
+  categoryId?: string | null;
+  qrTagId?: string | null;
+};
+
 function Section({
   icon: Icon,
   title,
@@ -39,7 +50,18 @@ function Section({
   );
 }
 
-export function RepairRequestForm({ buildings, categories }: { buildings: Option[]; categories: Option[] }) {
+export function RepairRequestForm({
+  buildings,
+  categories,
+  prefill = {},
+}: {
+  buildings: Option[];
+  categories: Option[];
+  prefill?: Prefill;
+}) {
+  // Only pre-select options that are still offered in the form.
+  const buildingDefault = buildings.some((b) => b.id === prefill.buildingId) ? prefill.buildingId! : "";
+  const categoryDefault = categories.some((c) => c.id === prefill.categoryId) ? prefill.categoryId! : "";
   const router = useRouter();
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [error, setError] = useState<string>();
@@ -79,6 +101,7 @@ export function RepairRequestForm({ buildings, categories }: { buildings: Option
   return (
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
       {error && <Alert tone="error">{error}</Alert>}
+      {prefill.qrTagId && <input type="hidden" name="qrTagId" value={prefill.qrTagId} />}
 
       <Section icon={Camera} title="รูปภาพความเสียหาย" description="ถ่ายให้เห็นอุปกรณ์และจุดที่เสียชัดเจน อย่างน้อย 1 รูป">
         <PhotoPicker photos={photos} onChange={setPhotos} />
@@ -91,14 +114,20 @@ export function RepairRequestForm({ buildings, categories }: { buildings: Option
             <label htmlFor="equipment" className="label">
               อุปกรณ์ที่เสียหาย <span className="text-rose-500">*</span>
             </label>
-            <input id="equipment" name="equipment" className="input" placeholder="เช่น เครื่องปรับอากาศ, หลอดไฟ, ก๊อกน้ำ" />
+            <input
+              id="equipment"
+              name="equipment"
+              className="input"
+              placeholder="เช่น เครื่องปรับอากาศ, หลอดไฟ, ก๊อกน้ำ"
+              defaultValue={prefill.equipment ?? ""}
+            />
             <FieldError errors={fieldErrors.equipment} />
           </div>
           <div>
             <label htmlFor="categoryId" className="label">
               ประเภทงาน <span className="text-rose-500">*</span>
             </label>
-            <select id="categoryId" name="categoryId" className="input" defaultValue="">
+            <select id="categoryId" name="categoryId" className="input" defaultValue={categoryDefault}>
               <option value="" disabled>
                 เลือกประเภทงาน
               </option>
@@ -114,7 +143,13 @@ export function RepairRequestForm({ buildings, categories }: { buildings: Option
             <label htmlFor="assetNumber" className="label">
               เลขครุภัณฑ์ <span className="font-normal text-zinc-400">(ถ้ามี)</span>
             </label>
-            <input id="assetNumber" name="assetNumber" className="input" placeholder="เช่น 7440-001-0001" />
+            <input
+              id="assetNumber"
+              name="assetNumber"
+              className="input"
+              placeholder="เช่น 7440-001-0001"
+              defaultValue={prefill.assetNumber ?? ""}
+            />
             <FieldError errors={fieldErrors.assetNumber} />
           </div>
           <fieldset className="sm:col-span-2">
@@ -141,7 +176,7 @@ export function RepairRequestForm({ buildings, categories }: { buildings: Option
             <label htmlFor="buildingId" className="label">
               อาคาร / ตึก <span className="text-rose-500">*</span>
             </label>
-            <select id="buildingId" name="buildingId" className="input" defaultValue="">
+            <select id="buildingId" name="buildingId" className="input" defaultValue={buildingDefault}>
               <option value="" disabled>
                 เลือกอาคาร
               </option>
@@ -157,14 +192,27 @@ export function RepairRequestForm({ buildings, categories }: { buildings: Option
             <label htmlFor="floor" className="label">
               ชั้น
             </label>
-            <input id="floor" name="floor" className="input" placeholder="เช่น 3" inputMode="numeric" />
+            <input
+              id="floor"
+              name="floor"
+              className="input"
+              placeholder="เช่น 3"
+              inputMode="numeric"
+              defaultValue={prefill.floor ?? ""}
+            />
             <FieldError errors={fieldErrors.floor} />
           </div>
           <div className="sm:col-span-3">
             <label htmlFor="location" className="label">
               ห้อง / จุดที่ตั้ง <span className="text-rose-500">*</span>
             </label>
-            <input id="location" name="location" className="input" placeholder="เช่น ห้อง 301, ห้องน้ำชายฝั่งทิศเหนือ" />
+            <input
+              id="location"
+              name="location"
+              className="input"
+              placeholder="เช่น ห้อง 301, ห้องน้ำชายฝั่งทิศเหนือ"
+              defaultValue={prefill.location ?? ""}
+            />
             <FieldError errors={fieldErrors.location} />
           </div>
         </div>

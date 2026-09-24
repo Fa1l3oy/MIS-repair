@@ -1,5 +1,6 @@
 "use client";
 
+import { Camera, CameraOff, ImagePlus, LoaderCircle, X } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 export type PickedPhoto = { id: string; file: File; url: string };
@@ -77,6 +78,7 @@ export function PhotoPicker({
   const captureInput = useRef<HTMLInputElement>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const remaining = max - photos.length;
 
   async function addFiles(files: File[]) {
@@ -109,19 +111,90 @@ export function PhotoPicker({
     else captureInput.current?.click();
   }
 
+  const buttons = (
+    <div className="flex flex-wrap items-center justify-center gap-2">
+      <button type="button" onClick={openCamera} disabled={remaining <= 0 || busy} className="btn-primary">
+        <Camera className="size-4" strokeWidth={2} />
+        ถ่ายรูป
+      </button>
+      <button
+        type="button"
+        onClick={() => fileInput.current?.click()}
+        disabled={remaining <= 0 || busy}
+        className="btn-secondary"
+      >
+        <ImagePlus className="size-4" strokeWidth={2} />
+        เลือกรูปจากเครื่อง
+      </button>
+    </div>
+  );
+
   return (
-    <div>
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={openCamera} disabled={remaining <= 0 || busy} className="btn-primary">
-          📷 ถ่ายรูป
-        </button>
-        <button type="button" onClick={() => fileInput.current?.click()} disabled={remaining <= 0 || busy} className="btn-secondary">
-          🖼️ เลือกรูปจากเครื่อง
-        </button>
-        <span className="self-center text-xs text-slate-500">
-          {busy ? "กำลังประมวลผลรูป..." : `${photos.length}/${max} รูป`}
-        </span>
-      </div>
+    <div
+      onDragOver={(e) => {
+        if (remaining <= 0 || !e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        addFiles(Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/")));
+      }}
+      className={`rounded-2xl border-2 border-dashed p-4 transition sm:p-5 ${
+        dragging ? "border-brand-400 bg-brand-50/60" : "border-zinc-200 bg-zinc-50/50"
+      }`}
+    >
+      {photos.length === 0 ? (
+        <div className="flex flex-col items-center py-4 text-center">
+          <span className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-white text-zinc-500 shadow-soft ring-1 ring-zinc-200/80">
+            {busy ? <LoaderCircle className="size-6 animate-spin" /> : <Camera className="size-6" strokeWidth={1.75} />}
+          </span>
+          <p className="text-sm font-medium text-zinc-900">
+            {busy ? "กำลังประมวลผลรูป..." : "ถ่ายรูปหรือเลือกรูปอุปกรณ์ที่เสียหาย"}
+          </p>
+          <p className="mt-1 mb-4 text-xs text-zinc-500">
+            <span className="hidden sm:inline">ลากไฟล์มาวางที่นี่ได้ · </span>JPG, PNG, WEBP · สูงสุด {max} รูป
+          </p>
+          {buttons}
+        </div>
+      ) : (
+        <>
+          <ul className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 sm:gap-3">
+            {photos.map((p, i) => (
+              <li
+                key={p.id}
+                className="group relative aspect-square overflow-hidden rounded-xl bg-zinc-100 ring-1 ring-zinc-200/80"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview */}
+                <img src={p.url} alt={`รูปที่ ${i + 1}`} className="size-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => remove(p.id)}
+                  className="absolute top-1.5 right-1.5 flex size-7 items-center justify-center rounded-full bg-zinc-900/60 text-white backdrop-blur-sm transition hover:bg-zinc-900/80"
+                  aria-label={`ลบรูปที่ ${i + 1}`}
+                >
+                  <X className="size-4" strokeWidth={2.25} />
+                </button>
+              </li>
+            ))}
+            {busy && (
+              <li className="flex aspect-square items-center justify-center rounded-xl bg-white ring-1 ring-zinc-200/80">
+                <LoaderCircle className="size-5 animate-spin text-zinc-400" />
+              </li>
+            )}
+          </ul>
+          <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <p className="text-xs text-zinc-500">
+              {photos.length}/{max} รูป{remaining > 0 ? ` · เพิ่มได้อีก ${remaining} รูป` : " · ครบจำนวนแล้ว"}
+            </p>
+            {remaining > 0 && buttons}
+          </div>
+        </>
+      )}
 
       <input
         ref={fileInput}
@@ -145,25 +218,6 @@ export function PhotoPicker({
           e.target.value = "";
         }}
       />
-
-      {photos.length > 0 && (
-        <ul className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-5">
-          {photos.map((p) => (
-            <li key={p.id} className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-              {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview */}
-              <img src={p.url} alt="รูปที่เลือก" className="h-full w-full object-cover" />
-              <button
-                type="button"
-                onClick={() => remove(p.id)}
-                className="absolute top-1 right-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-sm text-white hover:bg-black/80"
-                aria-label="ลบรูป"
-              >
-                ✕
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
 
       {cameraOpen && remaining > 0 && (
         <CameraModal
@@ -237,7 +291,12 @@ function CameraModal({
     <div className="fixed inset-0 z-50 flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="ถ่ายรูป">
       <div className="relative flex flex-1 items-center justify-center overflow-hidden">
         {error ? (
-          <p className="max-w-sm px-6 text-center text-sm text-white">{error}</p>
+          <div className="flex max-w-sm flex-col items-center gap-3 px-6 text-center">
+            <span className="flex size-12 items-center justify-center rounded-2xl bg-white/10 text-white">
+              <CameraOff className="size-6" strokeWidth={1.75} />
+            </span>
+            <p className="text-sm text-white/80">{error}</p>
+          </div>
         ) : (
           <video
             ref={videoRef}
@@ -245,23 +304,37 @@ function CameraModal({
             playsInline
             muted
             onLoadedMetadata={() => setReady(true)}
-            className="h-full w-full object-contain"
+            className="size-full object-contain"
           />
         )}
         {flash && <div className="absolute inset-0 bg-white/70" />}
-      </div>
-      <div className="flex items-center justify-between gap-4 bg-black px-6 py-5">
-        <button type="button" onClick={onClose} className="btn border border-white/30 text-white hover:bg-white/10">
-          เสร็จสิ้น
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 flex size-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition hover:bg-black/60"
+          aria-label="ปิดกล้อง"
+        >
+          <X className="size-5" />
         </button>
+      </div>
+      <div className="flex items-center justify-between gap-4 bg-black px-6 pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+        <span className="w-24" />
         <button
           type="button"
           onClick={capture}
           disabled={!ready}
-          className="h-16 w-16 rounded-full border-4 border-white bg-white/20 transition hover:bg-white/40 disabled:opacity-40"
-          aria-label="ถ่าย"
-        />
-        <span className="w-[88px] text-right text-xs text-white/60">กดวงกลมเพื่อถ่าย</span>
+          className="flex size-18 items-center justify-center rounded-full border-4 border-white/90 transition active:scale-95 disabled:opacity-40"
+          aria-label="ถ่ายรูป"
+        >
+          <span className="size-14 rounded-full bg-white transition hover:bg-white/85" />
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-24 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition hover:bg-white/20"
+        >
+          เสร็จสิ้น
+        </button>
       </div>
     </div>
   );

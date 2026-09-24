@@ -1,24 +1,39 @@
 "use client";
 
+import { Camera, FileText, LoaderCircle, MapPin, Package, Send, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FieldError } from "@/components/field-error";
 import { MAX_UPLOAD_BYTES, PhotoPicker, totalPhotoBytes, type PickedPhoto } from "@/components/photo-picker";
-import { PRIORITY_LABEL } from "@/lib/labels";
+import { Alert } from "@/components/ui/alert";
+import { PRIORITY_DOT, PRIORITY_LABEL } from "@/lib/labels";
 import { PRIORITIES, type FieldErrors } from "@/lib/validation";
 import { createRepairRequest } from "./actions";
 
 type Option = { id: string; name: string };
 
-function Section({ step, title, children }: { step: number; title: string; children: React.ReactNode }) {
+function Section({
+  icon: Icon,
+  title,
+  description,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="card p-5 sm:p-6">
-      <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-xs text-white">
-          {step}
+      <div className="mb-5 flex items-start gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600">
+          <Icon className="size-[18px]" strokeWidth={1.75} />
         </span>
-        {title}
-      </h2>
+        <div>
+          <h2 className="font-semibold text-zinc-900">{title}</h2>
+          {description && <p className="mt-0.5 text-sm text-zinc-500">{description}</p>}
+        </div>
+      </div>
       {children}
     </section>
   );
@@ -63,39 +78,29 @@ export function RepairRequestForm({ buildings, categories }: { buildings: Option
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-      {error && (
-        <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">{error}</p>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
-      <Section step={1} title="รูปภาพความเสียหาย">
-        <p className="mb-3 text-sm text-slate-500">
-          ถ่ายรูปอุปกรณ์ที่เสียหายให้เห็นชัดเจน (อย่างน้อย 1 รูป สูงสุด 5 รูป)
-        </p>
+      <Section icon={Camera} title="รูปภาพความเสียหาย" description="ถ่ายให้เห็นอุปกรณ์และจุดที่เสียชัดเจน อย่างน้อย 1 รูป">
         <PhotoPicker photos={photos} onChange={setPhotos} />
         <FieldError errors={fieldErrors.photos} />
       </Section>
 
-      <Section step={2} title="ข้อมูลอุปกรณ์">
+      <Section icon={Package} title="ข้อมูลอุปกรณ์">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label htmlFor="equipment" className="label">
-              อุปกรณ์ที่เสียหาย *
+              อุปกรณ์ที่เสียหาย <span className="text-rose-500">*</span>
             </label>
-            <input
-              id="equipment"
-              name="equipment"
-              className="input"
-              placeholder="เช่น เครื่องปรับอากาศ, หลอดไฟ, ก๊อกน้ำ"
-            />
+            <input id="equipment" name="equipment" className="input" placeholder="เช่น เครื่องปรับอากาศ, หลอดไฟ, ก๊อกน้ำ" />
             <FieldError errors={fieldErrors.equipment} />
           </div>
           <div>
             <label htmlFor="categoryId" className="label">
-              ประเภทงาน *
+              ประเภทงาน <span className="text-rose-500">*</span>
             </label>
             <select id="categoryId" name="categoryId" className="input" defaultValue="">
               <option value="" disabled>
-                -- เลือกประเภท --
+                เลือกประเภทงาน
               </option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -107,7 +112,7 @@ export function RepairRequestForm({ buildings, categories }: { buildings: Option
           </div>
           <div>
             <label htmlFor="assetNumber" className="label">
-              เลขครุภัณฑ์ (ถ้ามี)
+              เลขครุภัณฑ์ <span className="font-normal text-zinc-400">(ถ้ามี)</span>
             </label>
             <input id="assetNumber" name="assetNumber" className="input" placeholder="เช่น 7440-001-0001" />
             <FieldError errors={fieldErrors.assetNumber} />
@@ -118,9 +123,10 @@ export function RepairRequestForm({ buildings, categories }: { buildings: Option
               {PRIORITIES.map((p) => (
                 <label
                   key={p}
-                  className="flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 px-3 py-2 text-sm has-checked:border-indigo-600 has-checked:bg-indigo-50 has-checked:font-medium has-checked:text-indigo-700 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500/30"
+                  className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-medium text-zinc-600 transition hover:border-zinc-300 has-checked:border-zinc-900 has-checked:bg-zinc-900 has-checked:text-white has-focus-visible:ring-4 has-focus-visible:ring-zinc-900/10"
                 >
                   <input type="radio" name="priority" value={p} defaultChecked={p === "MEDIUM"} className="sr-only" />
+                  <span className={`size-2 rounded-full ${PRIORITY_DOT[p]}`} aria-hidden />
                   {PRIORITY_LABEL[p]}
                 </label>
               ))}
@@ -129,15 +135,15 @@ export function RepairRequestForm({ buildings, categories }: { buildings: Option
         </div>
       </Section>
 
-      <Section step={3} title="สถานที่">
+      <Section icon={MapPin} title="สถานที่">
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="sm:col-span-2">
             <label htmlFor="buildingId" className="label">
-              อาคาร / ตึก *
+              อาคาร / ตึก <span className="text-rose-500">*</span>
             </label>
             <select id="buildingId" name="buildingId" className="input" defaultValue="">
               <option value="" disabled>
-                -- เลือกอาคาร --
+                เลือกอาคาร
               </option>
               {buildings.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -151,44 +157,40 @@ export function RepairRequestForm({ buildings, categories }: { buildings: Option
             <label htmlFor="floor" className="label">
               ชั้น
             </label>
-            <input id="floor" name="floor" className="input" placeholder="เช่น 3" />
+            <input id="floor" name="floor" className="input" placeholder="เช่น 3" inputMode="numeric" />
             <FieldError errors={fieldErrors.floor} />
           </div>
           <div className="sm:col-span-3">
             <label htmlFor="location" className="label">
-              ห้อง / จุดที่ตั้ง *
+              ห้อง / จุดที่ตั้ง <span className="text-rose-500">*</span>
             </label>
-            <input
-              id="location"
-              name="location"
-              className="input"
-              placeholder="เช่น ห้อง 301, ห้องน้ำชายฝั่งทิศเหนือ"
-            />
+            <input id="location" name="location" className="input" placeholder="เช่น ห้อง 301, ห้องน้ำชายฝั่งทิศเหนือ" />
             <FieldError errors={fieldErrors.location} />
           </div>
         </div>
       </Section>
 
-      <Section step={4} title="รายละเอียดปัญหา">
+      <Section icon={FileText} title="รายละเอียดปัญหา">
         <label htmlFor="description" className="label">
-          อาการเสีย / รายละเอียดเพิ่มเติม *
+          อาการเสีย / รายละเอียดเพิ่มเติม <span className="text-rose-500">*</span>
         </label>
         <textarea
           id="description"
           name="description"
           rows={4}
-          className="input"
+          className="input resize-y"
           placeholder="อธิบายอาการที่พบ เช่น เปิดไม่ติด มีน้ำรั่ว มีเสียงดังผิดปกติ ตั้งแต่เมื่อไร"
         />
         <FieldError errors={fieldErrors.description} />
       </Section>
 
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <button type="button" onClick={() => router.back()} className="btn-secondary" disabled={pending}>
+      <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+        <button type="button" onClick={() => router.back()} className="btn-ghost" disabled={pending}>
           ยกเลิก
         </button>
-        <button type="submit" className="btn-primary px-6" disabled={pending}>
-          {pending ? "กำลังบันทึก..." : "บันทึกและส่งแจ้งซ่อม"}
+        <button type="submit" className="btn-primary h-11 px-6" disabled={pending}>
+          {pending ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" strokeWidth={2} />}
+          {pending ? "กำลังส่งแจ้งซ่อม..." : "บันทึกและส่งแจ้งซ่อม"}
         </button>
       </div>
     </form>

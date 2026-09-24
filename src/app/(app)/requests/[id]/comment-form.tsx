@@ -1,5 +1,6 @@
 "use client";
 
+import { LoaderCircle, SendHorizontal } from "lucide-react";
 import { useState, useTransition } from "react";
 import { addComment } from "./actions";
 
@@ -10,6 +11,7 @@ export function CommentForm({ requestId }: { requestId: string }) {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!text.trim()) return;
     startTransition(async () => {
       const res = await addComment(requestId, text);
       if (!res.ok) return setError(res.error);
@@ -19,24 +21,34 @@ export function CommentForm({ requestId }: { requestId: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="mt-6 space-y-2 border-t border-slate-100 pt-4">
-      <label htmlFor="comment" className="label">
-        เพิ่มความคิดเห็น / สอบถาม
+    <form onSubmit={submit} className="mt-6 border-t border-zinc-100 pt-5">
+      <label htmlFor="comment" className="sr-only">
+        เพิ่มความคิดเห็น
       </label>
-      <textarea
-        id="comment"
-        rows={2}
-        className="input"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="พิมพ์ข้อความถึงผู้แจ้งหรือช่าง..."
-      />
-      {error && <p className="text-xs text-rose-600">{error}</p>}
-      <div className="flex justify-end">
-        <button type="submit" className="btn-secondary" disabled={pending || !text.trim()}>
-          {pending ? "กำลังส่ง..." : "ส่งข้อความ"}
+      <div className="flex items-end gap-2">
+        <textarea
+          id="comment"
+          rows={1}
+          className="input field-sizing-content max-h-40 min-h-11 resize-none"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            // Ctrl/⌘ + Enter sends; plain Enter keeps adding lines.
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) submit(e);
+          }}
+          placeholder="พิมพ์ข้อความถึงผู้แจ้งหรือช่าง..."
+        />
+        <button
+          type="submit"
+          className="btn-primary size-11 shrink-0 px-0"
+          disabled={pending || !text.trim()}
+          aria-label="ส่งข้อความ"
+          title="ส่งข้อความ (Ctrl+Enter)"
+        >
+          {pending ? <LoaderCircle className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}
         </button>
       </div>
+      {error && <p className="mt-1.5 text-xs font-medium text-rose-600">{error}</p>}
     </form>
   );
 }

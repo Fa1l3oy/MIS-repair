@@ -1,7 +1,19 @@
 "use client";
 
+import {
+  CircleCheck,
+  CirclePause,
+  CircleX,
+  Hand,
+  LoaderCircle,
+  UserCheck,
+  UserCog,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
 import { useState, useTransition } from "react";
 import { MAX_UPLOAD_BYTES, PhotoPicker, totalPhotoBytes, type PickedPhoto } from "@/components/photo-picker";
+import { Alert } from "@/components/ui/alert";
 import type { RequestStatus, Role } from "@/generated/prisma/enums";
 import { CLOSED_STATUSES, STATUS_LABEL } from "@/lib/labels";
 import { STAFF_TRANSITIONS } from "@/lib/workflow";
@@ -17,16 +29,13 @@ type Props = {
   technicians: Person[];
 };
 
-function Feedback({ result }: { result?: { ok: boolean; text: string } }) {
-  if (!result) return null;
-  return (
-    <p
-      className={`rounded-lg px-3 py-2 text-sm ${result.ok ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}
-    >
-      {result.text}
-    </p>
-  );
-}
+const OPTION_LOOK: Partial<Record<RequestStatus, { icon: LucideIcon; hint: string; accent: string }>> = {
+  ACCEPTED: { icon: UserCheck, hint: "รับผิดชอบงานนี้", accent: "text-brand-600" },
+  IN_PROGRESS: { icon: Wrench, hint: "เริ่มซ่อม / กำลังแก้ไข", accent: "text-amber-600" },
+  ON_HOLD: { icon: CirclePause, hint: "รออะไหล่หรือพักงานชั่วคราว", accent: "text-orange-600" },
+  COMPLETED: { icon: CircleCheck, hint: "ซ่อมเสร็จ ใช้งานได้ปกติ", accent: "text-emerald-600" },
+  REJECTED: { icon: CircleX, hint: "ต้องระบุเหตุผลให้ผู้แจ้งทราบ", accent: "text-rose-600" },
+};
 
 export function StaffPanel({ requestId, status, assignee, viewer, technicians }: Props) {
   const [result, setResult] = useState<{ ok: boolean; text: string }>();
@@ -48,28 +57,38 @@ export function StaffPanel({ requestId, status, assignee, viewer, technicians }:
   }
 
   return (
-    <section className="card border-indigo-200 p-5 ring-1 ring-indigo-100">
-      <h2 className="mb-3 flex items-center gap-2 font-semibold text-indigo-900">🔧 การดำเนินงานของช่าง</h2>
-      <div className="space-y-4">
-        <Feedback result={result} />
+    <section className="card overflow-hidden">
+      <div className="flex items-center gap-3 border-b border-zinc-100 bg-zinc-50/60 px-5 py-4">
+        <span className="flex size-9 items-center justify-center rounded-xl bg-zinc-900 text-white">
+          <Wrench className="size-[18px]" strokeWidth={2} />
+        </span>
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-900">การดำเนินงานของช่าง</h2>
+          <p className="text-xs text-zinc-500">อัปเดตสถานะเพื่อแจ้งผู้แจ้งซ่อม</p>
+        </div>
+      </div>
 
-        {closed && <p className="text-sm text-slate-500">งานนี้ปิดแล้ว ({STATUS_LABEL[status]})</p>}
+      <div className="space-y-4 p-5">
+        {result && <Alert tone={result.ok ? "success" : "error"}>{result.text}</Alert>}
+
+        {closed && <p className="text-sm text-zinc-500">งานนี้ปิดแล้ว ({STATUS_LABEL[status]})</p>}
 
         {!closed && status === "PENDING" && !assignee && (
           <button
             type="button"
-            className="btn-primary w-full py-3 text-base"
+            className="btn-primary h-12 w-full text-base"
             disabled={pending}
             onClick={() => run(() => acceptRequest(requestId))}
           >
-            ✋ รับงานนี้
+            {pending ? <LoaderCircle className="size-5 animate-spin" /> : <Hand className="size-5" strokeWidth={2} />}
+            รับงานนี้
           </button>
         )}
 
         {!closed && !canManage && assignee && (
-          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            งานนี้อยู่ในความรับผิดชอบของ <strong>{assignee.name}</strong>
-          </p>
+          <Alert tone="info">
+            งานนี้อยู่ในความรับผิดชอบของ <strong className="font-semibold">{assignee.name}</strong>
+          </Alert>
         )}
 
         {!closed && canManage && (
@@ -117,7 +136,12 @@ function StatusForm({
 
   if (!open) {
     return (
-      <button type="button" className="btn-secondary w-full text-rose-600" onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        className="btn-ghost w-full text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+        onClick={() => setOpen(true)}
+      >
+        <CircleX className="size-4" strokeWidth={2} />
         ไม่สามารถดำเนินการได้
       </button>
     );
@@ -125,7 +149,7 @@ function StatusForm({
 
   return (
     <form
-      className="space-y-3"
+      className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
         if (tooLarge) return;
@@ -141,28 +165,42 @@ function StatusForm({
       <fieldset>
         <legend className="label">อัปเดตสถานะเป็น</legend>
         <div className="grid gap-2">
-          {options.map((s) => (
-            <label
-              key={s}
-              className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm has-checked:border-indigo-500 has-checked:bg-indigo-50"
-            >
-              <input
-                type="radio"
-                name="status"
-                value={s}
-                checked={next === s}
-                onChange={() => setNext(s)}
-                className="accent-indigo-600"
-              />
-              {STATUS_LABEL[s]}
-            </label>
-          ))}
+          {options.map((s) => {
+            const look = OPTION_LOOK[s];
+            const Icon = look?.icon ?? Wrench;
+            return (
+              <label
+                key={s}
+                className="flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 px-3.5 py-2.5 transition hover:border-zinc-300 has-checked:border-zinc-900 has-checked:bg-zinc-50 has-checked:ring-1 has-checked:ring-zinc-900 has-focus-visible:ring-4 has-focus-visible:ring-zinc-900/10"
+              >
+                <input
+                  type="radio"
+                  name="status"
+                  value={s}
+                  checked={next === s}
+                  onChange={() => setNext(s)}
+                  className="sr-only"
+                />
+                <Icon className={`size-[18px] shrink-0 ${look?.accent ?? "text-zinc-500"}`} strokeWidth={2} />
+                <span className="min-w-0 flex-1 leading-tight">
+                  <span className="block text-sm font-medium text-zinc-900">{STATUS_LABEL[s]}</span>
+                  {look && <span className="block text-xs text-zinc-500">{look.hint}</span>}
+                </span>
+                <span
+                  aria-hidden
+                  className={`size-4 shrink-0 rounded-full border-2 transition ${
+                    next === s ? "border-zinc-900 bg-zinc-900 shadow-[inset_0_0_0_3px_white]" : "border-zinc-300"
+                  }`}
+                />
+              </label>
+            );
+          })}
         </div>
       </fieldset>
 
       <div>
         <label htmlFor="staff-note" className="label">
-          บันทึกการดำเนินงาน{next === "REJECTED" ? " (ระบุเหตุผล) *" : ""}
+          บันทึกการดำเนินงาน{next === "REJECTED" && <span className="text-rose-500"> * (ระบุเหตุผล)</span>}
         </label>
         <textarea
           id="staff-note"
@@ -185,16 +223,17 @@ function StatusForm({
           <p className="label">แนบรูปหลังซ่อม / ความคืบหน้า</p>
           <PhotoPicker photos={photos} onChange={setPhotos} />
           {tooLarge && (
-            <p className="mt-1 text-xs text-rose-600">รูปภาพรวมกันมีขนาดใหญ่เกิน 4 MB กรุณาลดจำนวนรูป</p>
+            <p className="mt-1.5 text-xs font-medium text-rose-600">รูปภาพรวมกันมีขนาดใหญ่เกิน 4 MB กรุณาลดจำนวนรูป</p>
           )}
         </div>
       )}
 
       <button
         type="submit"
-        className={next === "REJECTED" ? "btn-danger w-full" : "btn-primary w-full"}
+        className={`${next === "REJECTED" ? "btn-danger" : "btn-primary"} h-11 w-full`}
         disabled={pending || !next || tooLarge || (next === "REJECTED" && !note.trim())}
       >
+        {pending && <LoaderCircle className="size-4 animate-spin" />}
         {pending ? "กำลังบันทึก..." : "บันทึกสถานะ"}
       </button>
     </form>
@@ -216,9 +255,10 @@ function AssignForm({
 }) {
   const [selected, setSelected] = useState(assignee?.id ?? "");
   return (
-    <div className="space-y-2 border-t border-slate-100 pt-4">
-      <label htmlFor={`assign-${requestId}`} className="label">
-        มอบหมายงานให้ช่าง (ผู้ดูแลระบบ)
+    <div className="space-y-2 border-t border-zinc-100 pt-4">
+      <label htmlFor={`assign-${requestId}`} className="label flex items-center gap-1.5">
+        <UserCog className="size-4 text-zinc-400" strokeWidth={2} />
+        มอบหมายงานให้ช่าง
       </label>
       <div className="flex gap-2">
         <select
@@ -228,7 +268,7 @@ function AssignForm({
           onChange={(e) => setSelected(e.target.value)}
         >
           <option value="" disabled>
-            -- เลือกช่าง --
+            เลือกช่าง
           </option>
           {technicians.map((t) => (
             <option key={t.id} value={t.id}>
@@ -238,7 +278,7 @@ function AssignForm({
         </select>
         <button
           type="button"
-          className="btn-secondary shrink-0"
+          className="btn-secondary h-auto shrink-0"
           disabled={pending || !selected || selected === assignee?.id}
           onClick={() => onAssign(selected)}
         >

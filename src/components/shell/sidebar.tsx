@@ -10,6 +10,7 @@ import { Avatar } from "../ui/avatar";
 import { BrandMark, BrandName } from "./brand-mark";
 import { activeHref, navSections, PROFILE, type NavItem } from "./nav";
 import { NotificationCountBadge } from "./notification-count";
+import { SearchTrigger } from "./search-trigger";
 
 export type ShellUser = { name: string; email: string; role: Role };
 
@@ -47,7 +48,8 @@ export function Sidebar({ user }: { user: ShellUser }) {
         <BrandName />
       </Link>
 
-      <div className="px-3 pt-2 pb-4">
+      <div className="space-y-2 px-3 pt-2 pb-4">
+        <SearchTrigger variant="box" />
         <Link href="/requests/new" className="btn-primary w-full">
           <Plus className="size-4" strokeWidth={2.25} />
           แจ้งซ่อมใหม่

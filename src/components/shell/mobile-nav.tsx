@@ -10,6 +10,7 @@ import { Avatar } from "../ui/avatar";
 import { BrandMark, BrandName } from "./brand-mark";
 import { activeHref, mobileTabs, navSections, PROFILE, type NavItem } from "./nav";
 import { NotificationCountBadge, useNotificationCount } from "./notification-count";
+import { SearchTrigger } from "./search-trigger";
 import type { ShellUser } from "./sidebar";
 
 function TabLink({ item, active }: { item: NavItem; active: boolean }) {
@@ -56,9 +57,12 @@ export function MobileNav({ user }: { user: ShellUser }) {
           <BrandMark className="size-8" />
           <BrandName />
         </Link>
-        <Link href="/profile" aria-label="โปรไฟล์ของฉัน">
-          <Avatar name={user.name} size="sm" />
-        </Link>
+        <div className="flex items-center gap-1">
+          <SearchTrigger variant="icon" />
+          <Link href="/profile" aria-label="โปรไฟล์ของฉัน">
+            <Avatar name={user.name} size="sm" />
+          </Link>
+        </div>
       </header>
 
       <nav

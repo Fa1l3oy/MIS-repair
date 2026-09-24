@@ -36,9 +36,9 @@ export function ColumnChart({ points, unit = "รายการ" }: { points: C
       {/* pt-2 leaves room for the top tick label, which is centred on its gridline */}
       <div className="flex pt-2">
         {/* y-axis ticks */}
-        <div className="relative h-44 w-8 shrink-0 text-right text-[11px] text-slate-500 tabular-nums" aria-hidden>
+        <div className="relative h-44 w-8 shrink-0 text-right text-[11px] text-zinc-500 tabular-nums" aria-hidden>
           {ticks.map((t) => (
-            <span key={t} className="absolute right-2 -translate-y-1/2" style={{ bottom: `${(t / top) * 100}%` }}>
+            <span key={t} className="absolute right-2 -tranzinc-y-1/2" style={{ bottom: `${(t / top) * 100}%` }}>
               {nf.format(t)}
             </span>
           ))}
@@ -58,7 +58,7 @@ export function ColumnChart({ points, unit = "รายการ" }: { points: C
           <ul className="absolute inset-0 flex items-end" aria-label="แผนภูมิแท่ง">
             {points.map((p, i) => {
               const h = (p.value / top) * 100;
-              const align = i < 2 ? "left-0" : i > points.length - 3 ? "right-0" : "left-1/2 -translate-x-1/2";
+              const align = i < 2 ? "left-0" : i > points.length - 3 ? "right-0" : "left-1/2 -tranzinc-x-1/2";
               return (
                 <li
                   key={p.key}
@@ -72,7 +72,7 @@ export function ColumnChart({ points, unit = "รายการ" }: { points: C
                   />
                   {i === maxIndex && (
                     <span
-                      className="pointer-events-none absolute text-xs font-semibold text-slate-700 tabular-nums"
+                      className="pointer-events-none absolute text-xs font-semibold text-zinc-700 tabular-nums"
                       style={{ bottom: `calc(${h}% + 4px)` }}
                     >
                       {nf.format(p.value)}
@@ -81,12 +81,12 @@ export function ColumnChart({ points, unit = "รายการ" }: { points: C
                   {/* tooltip: value leads, label follows */}
                   <span
                     role="tooltip"
-                    className={`pointer-events-none absolute top-0 z-10 hidden rounded-md bg-slate-900 px-2.5 py-1.5 text-left whitespace-nowrap shadow-lg group-hover:block group-focus-visible:block ${align}`}
+                    className={`pointer-events-none absolute top-0 z-10 hidden rounded-md bg-zinc-900 px-2.5 py-1.5 text-left whitespace-nowrap shadow-lg group-hover:block group-focus-visible:block ${align}`}
                   >
                     <span className="block text-sm font-semibold text-white">
                       {nf.format(p.value)} {unit}
                     </span>
-                    <span className="block text-xs text-slate-300">{p.fullLabel}</span>
+                    <span className="block text-xs text-zinc-300">{p.fullLabel}</span>
                   </span>
                 </li>
               );
@@ -96,12 +96,12 @@ export function ColumnChart({ points, unit = "รายการ" }: { points: C
       </div>
 
       {/* x-axis labels, thinned so they never collide; centred on their column, never clipped */}
-      <div className="ml-8 flex h-6 text-[11px] text-slate-500" aria-hidden>
+      <div className="ml-8 flex h-6 text-[11px] text-zinc-500" aria-hidden>
         {points.map((p, i) => {
           // Count back from the latest column so it is always labelled and spacing stays even.
           const show = (points.length - 1 - i) % labelEvery === 0;
           // Keep the first/last labels inside the chart instead of centring past its edge.
-          const pos = i === 0 ? "left-0" : i === points.length - 1 ? "right-0" : "left-1/2 -translate-x-1/2";
+          const pos = i === 0 ? "left-0" : i === points.length - 1 ? "right-0" : "left-1/2 -tranzinc-x-1/2";
           return (
             <span key={p.key} className="relative flex-1">
               {show && <span className={`absolute top-1.5 whitespace-nowrap ${pos}`}>{p.label}</span>}
@@ -111,15 +111,15 @@ export function ColumnChart({ points, unit = "รายการ" }: { points: C
       </div>
 
       <details className="mt-3 text-sm">
-        <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-800">ดูข้อมูลเป็นตาราง</summary>
+        <summary className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-800">ดูข้อมูลเป็นตาราง</summary>
         <table className="mt-2 w-full text-left text-xs">
-          <thead className="text-slate-500">
+          <thead className="text-zinc-500">
             <tr>
               <th className="py-1 font-medium">ช่วงเวลา</th>
               <th className="py-1 text-right font-medium">จำนวน ({unit})</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-slate-700">
+          <tbody className="divide-y divide-zinc-100 text-zinc-700">
             {points.map((p) => (
               <tr key={p.key}>
                 <td className="py-1">{p.fullLabel}</td>
@@ -141,16 +141,16 @@ export function BarList({
   emptyText?: string;
 }) {
   const max = Math.max(0, ...rows.map((r) => r.value));
-  if (max === 0) return <p className="py-6 text-center text-sm text-slate-400">{emptyText}</p>;
+  if (max === 0) return <p className="py-6 text-center text-sm text-zinc-400">{emptyText}</p>;
 
   return (
     <ul className="viz space-y-1">
       {rows.map((r) => (
         <li
           key={r.label}
-          className="grid grid-cols-[minmax(0,9rem)_1fr] items-center gap-3 rounded-md px-1 py-1 hover:bg-slate-50"
+          className="grid grid-cols-[minmax(0,9rem)_1fr] items-center gap-3 rounded-lg px-1.5 py-1 hover:bg-zinc-50"
         >
-          <span className="truncate text-sm text-slate-600" title={r.label}>
+          <span className="truncate text-sm text-zinc-600" title={r.label}>
             {r.label}
           </span>
           <span className="flex items-center gap-2">
@@ -158,20 +158,10 @@ export function BarList({
               className="h-3 rounded-r-[4px]"
               style={{ width: r.value > 0 ? `max(${(r.value / max) * 85}%, 2px)` : 0, background: "var(--viz-series-1)" }}
             />
-            <span className="text-sm font-medium text-slate-800 tabular-nums">{nf.format(r.value)}</span>
+            <span className="text-sm font-medium text-zinc-800 tabular-nums">{nf.format(r.value)}</span>
           </span>
         </li>
       ))}
     </ul>
-  );
-}
-
-export function StatTile({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="card p-4">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900 sm:text-3xl">{value}</p>
-      {hint && <p className="mt-0.5 text-xs text-slate-500">{hint}</p>}
-    </div>
   );
 }

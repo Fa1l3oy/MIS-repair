@@ -1,6 +1,9 @@
 "use client";
 
+import { Check, KeyRound, X } from "lucide-react";
 import { useState, useTransition } from "react";
+import { Avatar } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import type { Role } from "@/generated/prisma/enums";
 import { ROLE_LABEL } from "@/lib/labels";
 import { ROLES } from "@/lib/validation";
@@ -50,28 +53,33 @@ export function UserRow({ user, isSelf }: { user: Row; isSelf: boolean }) {
   }
 
   return (
-    <tr className={user.isActive ? "" : "bg-slate-50/80 text-slate-400"}>
-      <td className="px-4 py-3 align-top">
-        <p className="font-medium text-slate-900">
-          {user.name}
-          {isSelf && <span className="ml-1.5 text-xs font-normal text-indigo-600">(คุณ)</span>}
-        </p>
-        <p className="text-xs text-slate-500">{user.email}</p>
+    <tr className={`align-middle transition ${user.isActive ? "hover:bg-zinc-50/70" : "bg-zinc-50/60"}`}>
+      <td className="px-5 py-3.5">
+        <div className={`flex items-center gap-3 ${user.isActive ? "" : "opacity-60"}`}>
+          <Avatar name={user.name} />
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 font-medium text-zinc-900">
+              <span className="truncate">{user.name}</span>
+              {isSelf && <span className="badge bg-zinc-100 px-1.5 py-0 text-[11px] text-zinc-600 ring-zinc-500/15">คุณ</span>}
+            </p>
+            <p className="truncate text-xs text-zinc-500">{user.email}</p>
+          </div>
+        </div>
         {feedback && (
-          <p className={`mt-1 text-xs ${feedback.ok ? "text-emerald-600" : "text-rose-600"}`}>{feedback.text}</p>
+          <p className={`mt-1.5 text-xs font-medium ${feedback.ok ? "text-emerald-600" : "text-rose-600"}`}>{feedback.text}</p>
         )}
       </td>
-      <td className="px-4 py-3 align-top text-slate-600">
-        {user.department ?? "-"}
-        {user.phone && <span className="block text-xs text-slate-400">{user.phone}</span>}
+      <td className="px-4 py-3.5 text-zinc-700">
+        {user.department ?? <span className="text-zinc-400">-</span>}
+        {user.phone && <span className="block text-xs text-zinc-400">{user.phone}</span>}
       </td>
-      <td className="px-4 py-3 align-top text-xs text-slate-500">
+      <td className="px-4 py-3.5 text-xs whitespace-nowrap text-zinc-500 tabular-nums">
         แจ้งซ่อม {user.reported}
         {user.role !== "USER" && <span className="block">งานค้าง {user.openJobs}</span>}
       </td>
-      <td className="px-4 py-3 align-top">
+      <td className="px-4 py-3.5">
         <select
-          className="input w-44 py-1.5"
+          className="input w-40 py-1.5"
           value={user.role}
           disabled={isSelf || pending}
           onChange={(e) => onRoleChange(e.target.value as Role)}
@@ -85,23 +93,23 @@ export function UserRow({ user, isSelf }: { user: Row; isSelf: boolean }) {
           ))}
         </select>
       </td>
-      <td className="px-4 py-3 align-top">
-        <button
-          type="button"
-          onClick={onToggleActive}
-          disabled={isSelf || pending}
-          className={`badge cursor-pointer disabled:cursor-not-allowed ${
-            user.isActive ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-rose-50 text-rose-700 ring-rose-200"
-          }`}
-          title={isSelf ? undefined : user.isActive ? "คลิกเพื่อระงับบัญชี" : "คลิกเพื่อเปิดใช้งาน"}
-        >
-          {user.isActive ? "● ใช้งานอยู่" : "● ถูกระงับ"}
-        </button>
+      <td className="px-4 py-3.5">
+        <div className="flex items-center gap-2.5" title={isSelf ? "ไม่สามารถระงับบัญชีของตัวเองได้" : undefined}>
+          <Switch
+            checked={user.isActive}
+            onChange={onToggleActive}
+            disabled={isSelf || pending}
+            label={user.isActive ? `ระงับบัญชีของ ${user.name}` : `เปิดใช้งานบัญชีของ ${user.name}`}
+          />
+          <span className={`text-xs font-medium whitespace-nowrap ${user.isActive ? "text-emerald-700" : "text-zinc-500"}`}>
+            {user.isActive ? "ใช้งานอยู่" : "ถูกระงับ"}
+          </span>
+        </div>
       </td>
-      <td className="px-4 py-3 text-right align-top">
+      <td className="px-5 py-3.5 text-right">
         {showReset ? (
           <form
-            className="flex items-center justify-end gap-1"
+            className="flex items-center justify-end gap-1.5"
             onSubmit={(e) => {
               e.preventDefault();
               run(
@@ -121,17 +129,18 @@ export function UserRow({ user, isSelf }: { user: Row; isSelf: boolean }) {
               onChange={(e) => setPassword(e.target.value)}
               minLength={8}
               autoFocus
-              aria-label="รหัสผ่านใหม่"
+              aria-label="รหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร)"
             />
-            <button type="submit" className="btn-primary px-3 py-1.5" disabled={pending || password.length < 8}>
-              บันทึก
+            <button type="submit" className="btn-primary size-9 px-0" disabled={pending || password.length < 8} aria-label="บันทึกรหัสผ่าน">
+              <Check className="size-4" />
             </button>
-            <button type="button" className="btn-secondary px-3 py-1.5" onClick={() => setShowReset(false)}>
-              ✕
+            <button type="button" className="btn-icon size-9" onClick={() => setShowReset(false)} aria-label="ยกเลิก">
+              <X className="size-4" />
             </button>
           </form>
         ) : (
-          <button type="button" className="text-xs text-indigo-600 hover:underline" onClick={() => setShowReset(true)}>
+          <button type="button" className="btn-ghost h-9 px-3 text-xs" onClick={() => setShowReset(true)}>
+            <KeyRound className="size-3.5" />
             ตั้งรหัสผ่านใหม่
           </button>
         )}

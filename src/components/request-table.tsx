@@ -1,8 +1,11 @@
+import { ChevronRight, MapPin, Wrench } from "lucide-react";
 import Link from "next/link";
 import type { Priority, RequestStatus } from "@/generated/prisma/enums";
 import { timeAgo } from "@/lib/dates";
-import { formatDateTime, PRIORITY_LABEL, PRIORITY_STYLE } from "@/lib/labels";
-import { StatusBadge } from "./badges";
+import { formatDateTime } from "@/lib/labels";
+import { PriorityBadge, StatusBadge } from "./badges";
+import { Avatar } from "./ui/avatar";
+import { EmptyState } from "./ui/empty-state";
 
 export type RequestRow = {
   id: string;
@@ -19,18 +22,9 @@ export type RequestRow = {
   assignee: { name: string } | null;
 };
 
-function PriorityPill({ priority }: { priority: Priority }) {
-  return <span className={`badge ${PRIORITY_STYLE[priority]}`}>{PRIORITY_LABEL[priority]}</span>;
-}
-
 export function RequestTable({ rows, emptyText = "ไม่พบรายการ" }: { rows: RequestRow[]; emptyText?: string }) {
   if (rows.length === 0) {
-    return (
-      <div className="card flex flex-col items-center gap-2 px-6 py-14 text-center text-slate-500">
-        <span className="text-4xl">🧰</span>
-        {emptyText}
-      </div>
-    );
+    return <EmptyState icon={Wrench} title={emptyText} description="ลองเปลี่ยนแท็บหรือตัวกรองดูอีกครั้ง" />;
   }
 
   return (
@@ -38,44 +32,53 @@ export function RequestTable({ rows, emptyText = "ไม่พบรายกา
       {/* Desktop table */}
       <div className="card hidden overflow-hidden md:block">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
+          <thead className="border-b border-zinc-100 bg-zinc-50/70 text-xs text-zinc-500">
             <tr>
-              <th className="px-4 py-3 font-medium">เลขที่ / อุปกรณ์</th>
+              <th className="w-[30%] px-5 py-3 font-medium">อุปกรณ์</th>
               <th className="px-4 py-3 font-medium">สถานที่</th>
               <th className="px-4 py-3 font-medium">ความเร่งด่วน</th>
               <th className="px-4 py-3 font-medium">สถานะ</th>
               <th className="px-4 py-3 font-medium">ผู้แจ้ง / ช่าง</th>
-              <th className="px-4 py-3 font-medium">แจ้งเมื่อ</th>
+              <th className="px-5 py-3 text-right font-medium">แจ้งเมื่อ</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-zinc-100">
             {rows.map((r) => (
-              <tr key={r.id} className="group relative hover:bg-indigo-50/40">
-                <td className="px-4 py-3">
-                  <Link href={`/requests/${r.id}`} className="after:absolute after:inset-0">
-                    <span className="block font-mono text-xs text-slate-500">{r.code}</span>
-                    <span className="font-medium text-slate-900 group-hover:text-indigo-700">{r.equipment}</span>
-                    <span className="block text-xs text-slate-400">{r.category.name}</span>
+              <tr key={r.id} className="group relative transition hover:bg-zinc-50/70">
+                <td className="px-5 py-3.5">
+                  <Link href={`/requests/${r.id}`} className="block after:absolute after:inset-0">
+                    <span className="font-medium text-zinc-900">{r.equipment}</span>
+                    <span className="mt-1 flex min-w-0 items-center gap-2 text-xs text-zinc-500">
+                      <span className="chip">{r.code}</span>
+                      <span className="truncate">{r.category.name}</span>
+                    </span>
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="px-4 py-3.5 text-zinc-700">
                   {r.building.name}
-                  <span className="block text-xs text-slate-400">
+                  <span className="block text-xs text-zinc-400">
                     {r.floor && `ชั้น ${r.floor} · `}
                     {r.location}
                   </span>
                 </td>
-                <td className="px-4 py-3">
-                  <PriorityPill priority={r.priority} />
+                <td className="px-4 py-3.5">
+                  <PriorityBadge priority={r.priority} />
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3.5">
                   <StatusBadge status={r.status} />
                 </td>
-                <td className="px-4 py-3 text-slate-600">
-                  {r.reporter.name}
-                  <span className="block text-xs text-slate-400">{r.assignee ? `ช่าง: ${r.assignee.name}` : "ยังไม่มีผู้รับงาน"}</span>
+                <td className="px-4 py-3.5">
+                  <span className="flex items-center gap-2.5">
+                    <Avatar name={r.reporter.name} size="sm" />
+                    <span className="min-w-0 leading-tight">
+                      <span className="block truncate text-zinc-800">{r.reporter.name}</span>
+                      <span className="block truncate text-xs text-zinc-400">
+                        {r.assignee ? `ช่าง: ${r.assignee.name}` : "ยังไม่มีผู้รับงาน"}
+                      </span>
+                    </span>
+                  </span>
                 </td>
-                <td className="px-4 py-3 text-slate-500" title={formatDateTime(r.createdAt)}>
+                <td className="px-5 py-3.5 text-right whitespace-nowrap text-zinc-500" title={formatDateTime(r.createdAt)}>
                   {timeAgo(r.createdAt)}
                 </td>
               </tr>
@@ -88,21 +91,27 @@ export function RequestTable({ rows, emptyText = "ไม่พบรายกา
       <ul className="grid gap-3 md:hidden">
         {rows.map((r) => (
           <li key={r.id}>
-            <Link href={`/requests/${r.id}`} className="card block p-4 active:bg-slate-50">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs text-slate-500">{r.code}</span>
-                <StatusBadge status={r.status} />
-                <PriorityPill priority={r.priority} />
+            <Link href={`/requests/${r.id}`} className="card flex items-center gap-3 p-4 active:bg-zinc-50">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="chip">{r.code}</span>
+                  <StatusBadge status={r.status} />
+                  <PriorityBadge priority={r.priority} />
+                </div>
+                <p className="mt-2 truncate font-medium text-zinc-900">{r.equipment}</p>
+                <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm text-zinc-500">
+                  <MapPin className="size-3.5 shrink-0 text-zinc-400" />
+                  <span className="truncate">
+                    {r.building.name}
+                    {r.floor && ` · ชั้น ${r.floor}`} · {r.location}
+                  </span>
+                </p>
+                <p className="mt-1.5 truncate text-xs text-zinc-400">
+                  {r.reporter.name} · {timeAgo(r.createdAt)}
+                  {r.assignee && ` · ช่าง: ${r.assignee.name}`}
+                </p>
               </div>
-              <p className="mt-1 font-semibold">{r.equipment}</p>
-              <p className="text-sm text-slate-500">
-                {r.building.name}
-                {r.floor && ` ชั้น ${r.floor}`} · {r.location}
-              </p>
-              <p className="mt-1 text-xs text-slate-400">
-                {r.reporter.name} · {timeAgo(r.createdAt)}
-                {r.assignee && ` · ช่าง: ${r.assignee.name}`}
-              </p>
+              <ChevronRight className="size-4 shrink-0 text-zinc-300" />
             </Link>
           </li>
         ))}

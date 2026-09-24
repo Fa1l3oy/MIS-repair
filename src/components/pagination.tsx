@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 export function Pagination({
@@ -11,20 +12,22 @@ export function Pagination({
 }) {
   if (pageCount <= 1) return null;
   return (
-    <nav className="mt-4 flex items-center justify-between text-sm" aria-label="เปลี่ยนหน้า">
+    <nav className="mt-5 flex items-center justify-between text-sm" aria-label="เปลี่ยนหน้า">
       {page > 1 ? (
         <Link href={hrefFor(page - 1)} className="btn-secondary">
-          ← ก่อนหน้า
+          <ChevronLeft className="size-4" />
+          ก่อนหน้า
         </Link>
       ) : (
         <span />
       )}
-      <span className="text-slate-500">
-        หน้า {page} / {pageCount}
+      <span className="text-zinc-500 tabular-nums">
+        หน้า {page} จาก {pageCount}
       </span>
       {page < pageCount ? (
         <Link href={hrefFor(page + 1)} className="btn-secondary">
-          ถัดไป →
+          ถัดไป
+          <ChevronRight className="size-4" />
         </Link>
       ) : (
         <span />

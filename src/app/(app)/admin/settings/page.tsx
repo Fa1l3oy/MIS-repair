@@ -20,10 +20,10 @@ export default async function AdminSettingsPage() {
         title="ตั้งค่าข้อมูล"
         description="จัดการรายชื่ออาคารและประเภทงานที่ใช้ในแบบฟอร์มแจ้งซ่อม — รายการที่ปิดการใช้งานจะไม่แสดงในฟอร์ม แต่ยังคงอยู่ในใบแจ้งซ่อมเดิม"
       />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <MasterDataList
           kind="building"
-          title="อาคาร / ตึก"
+          title="อาคาร"
           withCode
           items={buildings.sort(byName).map((b) => ({
             id: b.id,

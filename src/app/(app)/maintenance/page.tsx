@@ -1,8 +1,11 @@
+import { CircleCheck, Inbox, Search, UserCheck, Wrench, X } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Pagination } from "@/components/pagination";
 import { RequestTable, requestRowSelect } from "@/components/request-table";
+import { SegmentedLinks } from "@/components/ui/segmented";
+import { StatCard } from "@/components/ui/stat-card";
 import type { Prisma } from "@/generated/prisma/client";
 import type { Priority, RequestStatus } from "@/generated/prisma/enums";
 import { startOfTodayBangkok } from "@/lib/dates";
@@ -88,11 +91,12 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
   const [pendingCount, mineCount, inProgressCount, doneTodayCount] = counts;
 
   const stats = [
-    { label: "งานใหม่รอรับ", value: pendingCount, href: "/maintenance?tab=new", tone: "text-sky-600" },
-    { label: "งานของฉันที่ค้างอยู่", value: mineCount, href: "/maintenance?tab=mine", tone: "text-indigo-600" },
-    { label: "อยู่ระหว่างดำเนินการ", value: inProgressCount, href: "/maintenance?tab=all&status=ACTIVE", tone: "text-amber-600" },
-    { label: "ซ่อมเสร็จวันนี้", value: doneTodayCount, href: "/maintenance?tab=all&done=today", tone: "text-emerald-600" },
-  ];
+    { label: "งานใหม่รอรับ", value: pendingCount, href: "/maintenance?tab=new", tone: "sky", icon: Inbox },
+    { label: "งานของฉันที่ค้างอยู่", value: mineCount, href: "/maintenance?tab=mine", tone: "brand", icon: UserCheck },
+    { label: "อยู่ระหว่างดำเนินการ", value: inProgressCount, href: "/maintenance?tab=all&status=ACTIVE", tone: "amber", icon: Wrench },
+    { label: "ซ่อมเสร็จวันนี้", value: doneTodayCount, href: "/maintenance?tab=all&done=today", tone: "emerald", icon: CircleCheck },
+  ] as const;
+  const filtered = Boolean(q || buildingId || priority || status || doneToday);
 
   const hrefFor = (p: number) => {
     const params = new URLSearchParams({ tab });
@@ -109,60 +113,55 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
     <>
       <PageHeader title="งานซ่อมบำรุง" description="รับงานใหม่ อัปเดตสถานะ และติดตามงานซ่อมทั้งหมด" />
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         {stats.map((s) => (
-          <Link key={s.label} href={s.href} className="card p-4 transition hover:border-indigo-300 hover:shadow-md">
-            <p className="text-xs text-slate-500 sm:text-sm">{s.label}</p>
-            <p className={`mt-1 text-3xl font-bold ${s.tone}`}>{s.value}</p>
-          </Link>
+          <StatCard key={s.label} label={s.label} value={s.value} href={s.href} tone={s.tone} icon={s.icon} />
         ))}
       </div>
 
-      <div className="mb-4 flex gap-1 overflow-x-auto rounded-lg bg-slate-100 p-1 sm:inline-flex">
-        {TABS.map((t) => (
-          <Link
-            key={t.key}
-            href={`/maintenance?tab=${t.key}`}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium whitespace-nowrap ${
-              tab === t.key ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            {t.label}
-            {t.key === "new" && pendingCount > 0 && (
-              <span className="ml-1.5 rounded-full bg-sky-600 px-1.5 text-xs text-white">{pendingCount}</span>
-            )}
-          </Link>
-        ))}
-      </div>
-
-      <form className="card mb-4 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5" action="/maintenance">
-        <input type="hidden" name="tab" value={tab} />
-        <input
-          name="q"
-          defaultValue={q}
-          className="input lg:col-span-2"
-          placeholder="ค้นหาเลขที่, อุปกรณ์, สถานที่, ผู้แจ้ง..."
-          aria-label="ค้นหา"
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <SegmentedLinks
+          label="มุมมองงาน"
+          items={TABS.map((t) => ({
+            href: `/maintenance?tab=${t.key}`,
+            label: t.label,
+            active: tab === t.key,
+            count: t.key === "new" ? pendingCount : t.key === "mine" ? mineCount : undefined,
+          }))}
         />
-        <select name="building" defaultValue={buildingId} className="input" aria-label="อาคาร">
-          <option value="">ทุกอาคาร</option>
-          {buildings.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
-        <select name="priority" defaultValue={priority ?? ""} className="input" aria-label="ความเร่งด่วน">
-          <option value="">ทุกระดับความเร่งด่วน</option>
-          {PRIORITIES.map((p) => (
-            <option key={p} value={p}>
-              {PRIORITY_LABEL[p]}
-            </option>
-          ))}
-        </select>
-        <div className="flex gap-2">
+      </div>
+
+      <form className="card mb-5 flex flex-col gap-3 p-3 lg:flex-row lg:items-center" action="/maintenance">
+        <input type="hidden" name="tab" value={tab} />
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-zinc-400" />
+          <input
+            name="q"
+            defaultValue={q}
+            className="input pl-10"
+            placeholder="ค้นหาเลขที่ อุปกรณ์ สถานที่ หรือผู้แจ้ง"
+            aria-label="ค้นหา"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap lg:flex-nowrap">
+          <select name="building" defaultValue={buildingId} className="input lg:w-44" aria-label="อาคาร">
+            <option value="">ทุกอาคาร</option>
+            {buildings.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+          <select name="priority" defaultValue={priority ?? ""} className="input lg:w-40" aria-label="ความเร่งด่วน">
+            <option value="">ทุกความเร่งด่วน</option>
+            {PRIORITIES.map((p) => (
+              <option key={p} value={p}>
+                {PRIORITY_LABEL[p]}
+              </option>
+            ))}
+          </select>
           {tab !== "new" && (
-            <select name="status" defaultValue={status ?? ""} className="input" aria-label="สถานะ">
+            <select name="status" defaultValue={status ?? ""} className="input col-span-2 lg:w-48" aria-label="สถานะ">
               <option value="">{tab === "mine" ? "งานที่ยังไม่เสร็จ" : "ทุกสถานะ"}</option>
               <option value="ACTIVE">อยู่ระหว่างดำเนินการ (ทุกขั้นตอน)</option>
               {STATUS_ORDER.map((s) => (
@@ -172,26 +171,33 @@ export default async function MaintenancePage({ searchParams }: PageProps<"/main
               ))}
             </select>
           )}
-          <button type="submit" className="btn-primary shrink-0">
+          <button type="submit" className="btn-primary col-span-2 h-auto min-h-10 sm:col-span-1">
+            <Search className="size-4" />
             ค้นหา
           </button>
         </div>
       </form>
 
-      <div className="mb-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-        พบ {total} รายการ
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
+        <span>
+          พบ <span className="font-medium text-zinc-900 tabular-nums">{total}</span> รายการ
+        </span>
         {doneToday && (
+          <span className="badge bg-emerald-50 text-emerald-700 ring-emerald-600/15">เฉพาะงานที่ซ่อมเสร็จวันนี้</span>
+        )}
+        {filtered && (
           <Link
-            href="/maintenance?tab=all"
-            className="badge bg-emerald-50 text-emerald-700 ring-emerald-200 hover:bg-emerald-100"
+            href={`/maintenance?tab=${tab}`}
+            className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 hover:text-zinc-900"
           >
-            เฉพาะงานที่ซ่อมเสร็จวันนี้ ✕
+            <X className="size-3.5" />
+            ล้างตัวกรอง
           </Link>
         )}
       </div>
       <RequestTable
         rows={rows}
-        emptyText={tab === "new" ? "ไม่มีงานใหม่ที่รอรับ 🎉" : tab === "mine" ? "คุณไม่มีงานค้างอยู่" : "ไม่พบรายการ"}
+        emptyText={tab === "new" ? "ไม่มีงานใหม่ที่รอรับ" : tab === "mine" ? "คุณไม่มีงานค้างอยู่" : "ไม่พบรายการ"}
       />
       <Pagination page={page} pageCount={Math.ceil(total / PAGE_SIZE)} hrefFor={hrefFor} />
     </>

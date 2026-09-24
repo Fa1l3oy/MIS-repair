@@ -7,9 +7,9 @@ export const ROLE_LABEL: Record<Role, string> = {
 };
 
 export const ROLE_STYLE: Record<Role, string> = {
-  USER: "bg-slate-100 text-slate-700 ring-slate-200",
-  MAINTENANCE: "bg-amber-50 text-amber-700 ring-amber-200",
-  ADMIN: "bg-violet-50 text-violet-700 ring-violet-200",
+  USER: "bg-zinc-100 text-zinc-700 ring-zinc-500/15",
+  MAINTENANCE: "bg-amber-50 text-amber-800 ring-amber-600/20",
+  ADMIN: "bg-brand-50 text-brand-700 ring-brand-600/20",
 };
 
 export const STATUS_LABEL: Record<RequestStatus, string> = {
@@ -23,13 +23,13 @@ export const STATUS_LABEL: Record<RequestStatus, string> = {
 };
 
 export const STATUS_STYLE: Record<RequestStatus, string> = {
-  PENDING: "bg-sky-50 text-sky-700 ring-sky-200",
-  ACCEPTED: "bg-indigo-50 text-indigo-700 ring-indigo-200",
-  IN_PROGRESS: "bg-amber-50 text-amber-700 ring-amber-200",
-  ON_HOLD: "bg-orange-50 text-orange-700 ring-orange-200",
-  COMPLETED: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  REJECTED: "bg-rose-50 text-rose-700 ring-rose-200",
-  CANCELLED: "bg-slate-100 text-slate-500 ring-slate-200",
+  PENDING: "bg-sky-50 text-sky-700 ring-sky-600/15",
+  ACCEPTED: "bg-brand-50 text-brand-700 ring-brand-600/15",
+  IN_PROGRESS: "bg-amber-50 text-amber-800 ring-amber-600/20",
+  ON_HOLD: "bg-orange-50 text-orange-800 ring-orange-600/20",
+  COMPLETED: "bg-emerald-50 text-emerald-700 ring-emerald-600/15",
+  REJECTED: "bg-rose-50 text-rose-700 ring-rose-600/15",
+  CANCELLED: "bg-zinc-100 text-zinc-500 ring-zinc-500/15",
 };
 
 export const STATUS_ORDER: RequestStatus[] = [
@@ -53,10 +53,18 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
 };
 
 export const PRIORITY_STYLE: Record<Priority, string> = {
-  LOW: "bg-slate-100 text-slate-600 ring-slate-200",
-  MEDIUM: "bg-blue-50 text-blue-700 ring-blue-200",
-  HIGH: "bg-orange-50 text-orange-700 ring-orange-200",
-  URGENT: "bg-red-50 text-red-700 ring-red-200",
+  LOW: "bg-zinc-100 text-zinc-600 ring-zinc-500/15",
+  MEDIUM: "bg-sky-50 text-sky-700 ring-sky-600/15",
+  HIGH: "bg-orange-50 text-orange-800 ring-orange-600/20",
+  URGENT: "bg-red-50 text-red-700 ring-red-600/20",
+};
+
+/** Solid dot colour for each priority (segmented picker, tables). */
+export const PRIORITY_DOT: Record<Priority, string> = {
+  LOW: "bg-zinc-400",
+  MEDIUM: "bg-sky-500",
+  HIGH: "bg-orange-500",
+  URGENT: "bg-red-500",
 };
 
 export function formatDateTime(date: Date) {

@@ -45,7 +45,7 @@ npm install
 npx prisma migrate deploy
 npm run db:seed
 
-# 5) (ไม่บังคับ) ข้อมูลตัวอย่าง ~80 ใบแจ้งซ่อมย้อนหลัง ให้แดชบอร์ดมีข้อมูล
+# 5) (ไม่บังคับ) ข้อมูลตัวอย่างเสมือนใช้งานจริง 6 เดือน (~210 ใบแจ้งซ่อมพร้อมรูป)
 npm run db:seed:demo
 
 # 6) รันระบบ
@@ -64,7 +64,9 @@ npm run dev
 | ช่างซ่อมบำรุง | `tech@repair.local` | `tech1234` |
 | ผู้ใช้งาน | `user@repair.local` | `user1234` |
 
-ข้อมูลตัวอย่างจาก `db:seed:demo` มีบัญชี `*@demo.local` รหัสผ่าน `demo1234` · ลบข้อมูลตัวอย่างทั้งหมดด้วย `npm run db:seed:demo -- --clean`
+ข้อมูลตัวอย่างจาก `db:seed:demo` ทำให้ระบบดูเหมือนใช้งานจริงมาแล้ว 6 เดือน: 8 อาคารพร้อมห้องตามชั้นจริง, บัญชีอาจารย์/เจ้าหน้าที่/นักศึกษา ~30 คน, ช่าง 5 คนแยกตามความชำนาญ, ใบแจ้งซ่อม ~210 งานที่มีประวัติครบตามขั้นตอนจริง (รับงาน → ซ่อม → รออะไหล่ → เสร็จ → ประเมิน), รูปก่อน/หลังซ่อม (วาดขึ้นใหม่ทุกรูปจาก `prisma/demo-photos.ts`), QR Code จุดแจ้งซ่อม, จุดที่เสียซ้ำ และการแจ้งเตือนของช่างจริงในระบบ
+- บัญชีตัวอย่างใช้โดเมน `@repairmis.ac.th` (ไม่ใช่โดเมนจริง) รหัสผ่าน `demo1234` เฉพาะในเครื่อง
+- ลบข้อมูลตัวอย่างทั้งหมด (รวมรูป) ด้วย `npm run db:seed:demo -- --clean`
 
 สมัครสมาชิกเองได้ที่หน้า `/register` (จะได้สิทธิ์ผู้ใช้งานเสมอ — ผู้ดูแลระบบเป็นผู้กำหนดสิทธิ์อื่น)
 
@@ -95,7 +97,7 @@ npm run dev
 | `npm run db:migrate` | สร้าง migration ใหม่หลังแก้ `prisma/schema.prisma` |
 | `npm run db:deploy` | apply migration ที่มีอยู่ |
 | `npm run db:seed` | ข้อมูลตั้งต้น (รันซ้ำได้ ไม่สร้างซ้ำ) |
-| `npm run db:seed:demo` | ข้อมูลตัวอย่างสำหรับแดชบอร์ด |
+| `npm run db:seed:demo` | ข้อมูลตัวอย่างเสมือนใช้งานจริง (`-- --clean` เพื่อลบ) |
 | `npm run db:studio` | เปิด Prisma Studio ดู/แก้ข้อมูล |
 
 ล้างฐานข้อมูลทั้งหมดแล้วเริ่มใหม่: `docker compose down -v` → `docker compose up -d` → `npx prisma migrate deploy` → `npm run db:seed`
@@ -118,7 +120,7 @@ docker-compose.yml          PostgreSQL 16
 prisma/
   schema.prisma             โมเดลข้อมูล (User, RepairRequest, RepairImage, RequestActivity, Notification, ...)
   migrations/               SQL migrations
-  seed.ts / seed-demo.ts    ข้อมูลตั้งต้น / ข้อมูลตัวอย่าง
+  seed.ts / seed-demo.ts    ข้อมูลตั้งต้น / ข้อมูลตัวอย่าง (demo-photos.ts วาดรูปประกอบ)
 src/
   proxy.ts                  กันหน้าที่ต้อง login (Next.js 16 ใช้ proxy แทน middleware)
   app/
@@ -174,7 +176,13 @@ npx tsx --env-file=.env.production.local prisma/seed.ts --production
 
 (ไฟล์ `.env.production.local` มีรหัสฐานข้อมูลจริง ไม่ถูก commit แต่ควรลบทิ้งเมื่อใช้เสร็จ)
 
-ข้อจำกัดของ Vercel ที่ระบบรองรับไว้แล้ว: request หนึ่งครั้งส่งได้ไม่เกิน 4.5 MB → หน้าแจ้งซ่อมย่อรูปแต่ละรูปให้ไม่เกิน ~700 KB และรวมไม่เกิน 4 MB ก่อนส่ง · `npm run db:seed` (รหัส `admin1234`) และ `db:seed:demo` จะไม่ยอมรันกับฐานข้อมูลที่ไม่ได้อยู่ในเครื่อง
+ข้อจำกัดของ Vercel ที่ระบบรองรับไว้แล้ว: request หนึ่งครั้งส่งได้ไม่เกิน 4.5 MB → หน้าแจ้งซ่อมย่อรูปแต่ละรูปให้ไม่เกิน ~700 KB และรวมไม่เกิน 4 MB ก่อนส่ง · `npm run db:seed` (รหัส `admin1234`) จะไม่ยอมรันกับฐานข้อมูลที่ไม่ได้อยู่ในเครื่อง
+
+ใส่ข้อมูลตัวอย่างให้เว็บจริง (เช่น ไว้นำเสนอ) — บัญชีตัวอย่างบนเว็บจริงได้รหัสผ่านสุ่มที่ไม่มีใครรู้ (ผู้ดูแลตั้งรหัสใหม่ให้ได้ที่ *จัดการผู้ใช้*) และรูปจะถูกเก็บใน Blob store ของเว็บนั้น:
+
+```bash
+DATABASE_URL="<connection string ของฐานข้อมูลจริง>" BLOB_READ_WRITE_TOKEN="<จาก vercel env pull>" npx tsx prisma/seed-demo.ts --allow-remote
+```
 
 ## หมายเหตุสำหรับ production
 

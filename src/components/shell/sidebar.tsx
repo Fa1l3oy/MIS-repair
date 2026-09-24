@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Role } from "@/generated/prisma/enums";
 import { ROLE_LABEL } from "@/lib/labels";
+import { InstallAppButton } from "../pwa/install-prompt";
 import { SignOutButton } from "../sign-out-button";
 import { Avatar } from "../ui/avatar";
 import { BrandMark, BrandName } from "./brand-mark";
@@ -72,6 +73,7 @@ export function Sidebar({ user }: { user: ShellUser }) {
       </nav>
 
       <div className="space-y-1 border-t border-zinc-100 p-3">
+        <InstallAppButton />
         <SideLink item={NOTIFICATIONS} active={active === NOTIFICATIONS.href} trailing={<NotificationCountBadge />} />
         <div className="flex items-center gap-1 rounded-xl p-1.5 transition hover:bg-zinc-50">
           <Link href="/profile" className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-0.5" title="โปรไฟล์ของฉัน">

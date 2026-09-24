@@ -50,6 +50,12 @@ export function NotificationCountProvider({ initialCount, children }: { initialC
     };
   }, [router]);
 
+  // Unread count on the home-screen / taskbar icon of the installed app.
+  useEffect(() => {
+    if (!("setAppBadge" in navigator)) return;
+    (count > 0 ? navigator.setAppBadge(count) : navigator.clearAppBadge()).catch(() => {});
+  }, [count]);
+
   return <CountContext value={count}>{children}</CountContext>;
 }
 

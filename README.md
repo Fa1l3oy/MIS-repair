@@ -70,6 +70,14 @@ npm run dev
 
 เบราว์เซอร์อนุญาตให้เปิดกล้องแบบสดในหน้าเว็บเฉพาะบน `https://` หรือ `localhost` — ผ่าน IP แบบ http ระบบจะใช้แอปกล้องของมือถือแทนโดยอัตโนมัติ · `AUTH_TRUST_HOST=true` ใน `.env` ทำให้ login ผ่าน IP ได้ และ `allowedDevOrigins` ใน `next.config.ts` อนุญาต IP วง LAN (192.168.x.x, 10.x.x.x, 172.x.x.x) ในโหมด dev
 
+### ติดตั้งเป็นแอปและการแจ้งเตือนบนมือถือ (PWA)
+
+- ระบบติดตั้งลงหน้าจอโฮมได้เหมือนแอป: Android/Chrome/Edge มีปุ่ม **ติดตั้งแอป** ให้ในระบบ · iPhone/iPad แตะปุ่มแชร์ใน Safari → **เพิ่มไปยังหน้าจอโฮม**
+- เปิด **การแจ้งเตือนบนอุปกรณ์นี้** ได้ที่หน้า *การแจ้งเตือน* — มีงานใหม่หรือสถานะงานเปลี่ยน จะเด้งแจ้งเตือนแม้ไม่ได้เปิดแอปอยู่ (iPhone ต้องติดตั้งลงหน้าจอโฮมก่อน, iOS 16.4 ขึ้นไป)
+- ต้องตั้งคู่กุญแจ VAPID ใน `.env` (สร้างด้วย `npx web-push generate-vapid-keys`) — ถ้าไม่ตั้ง ระบบยังใช้งานได้ปกติแต่จะมีเฉพาะแจ้งเตือนในระบบ
+- Push และ Service Worker ใช้ได้เฉพาะบน `https://` หรือ `localhost` (เปิดผ่าน IP แบบ http จะติดตั้งแอป/รับแจ้งเตือนไม่ได้) · ออกจากระบบแล้วอุปกรณ์นั้นจะหยุดรับแจ้งเตือนของบัญชีนั้นทันที
+- ไอคอนแอปสร้างจาก `scripts/generate-icons.mjs` (`node scripts/generate-icons.mjs`)
+
 ## คำสั่งที่ใช้บ่อย
 
 | คำสั่ง | ใช้ทำอะไร |
@@ -139,6 +147,10 @@ npx vercel link --yes --project mis-repair          # สร้าง/เชื�
 npx vercel integration add neon                    # ฐานข้อมูล (เลือก region สิงคโปร์, แผน Free)
 npx vercel blob create-store mis-repair-photos --access private --region sin1 --yes
 npx vercel env add NEXTAUTH_SECRET production      # ใส่ค่าสุ่มยาวๆ (ดูวิธีสร้างใน .env.example)
+# (ไม่บังคับ) การแจ้งเตือนบนมือถือ — ใช้ค่าจาก npx web-push generate-vapid-keys
+npx vercel env add NEXT_PUBLIC_VAPID_PUBLIC_KEY production
+npx vercel env add VAPID_PRIVATE_KEY production
+npx vercel env add VAPID_SUBJECT production        # เช่น mailto:it@your-org.ac.th
 npx vercel deploy --prod                           # build จะรัน prisma migrate deploy ให้เอง
 ```
 

@@ -55,11 +55,12 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  reportedRequests RepairRequest[] @relation("Reporter")
-  assignedRequests RepairRequest[] @relation("Assignee")
-  activities       RequestActivity[]
-  uploadedImages   RepairImage[]
-  notifications    Notification[]
+  reportedRequests  RepairRequest[]    @relation("Reporter")
+  assignedRequests  RepairRequest[]    @relation("Assignee")
+  activities        RequestActivity[]
+  uploadedImages    RepairImage[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Building {
@@ -186,4 +187,19 @@ model Notification {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
+}
+
+/// A browser/device that receives Web Push notifications for a user.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique // push-service URL; one row per browser
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

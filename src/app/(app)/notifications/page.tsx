@@ -1,6 +1,7 @@
 import { Bell, BellOff, CheckCheck, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
+import { PushToggle } from "@/components/pwa/push-toggle";
 import { EmptyState } from "@/components/ui/empty-state";
 import { timeAgo } from "@/lib/dates";
 import { formatDateTime } from "@/lib/labels";
@@ -35,6 +36,8 @@ export default async function NotificationsPage() {
           )
         }
       />
+
+      <PushToggle />
 
       {notifications.length === 0 ? (
         <EmptyState icon={BellOff} title="ยังไม่มีการแจ้งเตือน" description="เมื่อมีความเคลื่อนไหวของงานซ่อม จะแจ้งให้ทราบที่นี่" />

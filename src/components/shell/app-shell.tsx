@@ -1,5 +1,7 @@
 import type { Session } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import { InstallBanner } from "../pwa/install-prompt";
+import { PushSync } from "../pwa/pwa-setup";
 import { CommandPalette } from "./command-palette";
 import { MobileNav } from "./mobile-nav";
 import { NotificationCountProvider } from "./notification-count";
@@ -13,6 +15,8 @@ export async function AppShell({ user, children }: { user: Session["user"]; chil
     <NotificationCountProvider initialCount={unread}>
       <Sidebar user={shellUser} />
       <CommandPalette role={user.role} />
+      <InstallBanner />
+      <PushSync userId={user.id} />
       <div className="min-h-screen lg:pl-64 print:pl-0">
         <MobileNav user={shellUser} />
         {/* Bottom padding keeps content clear of the mobile tab bar. */}

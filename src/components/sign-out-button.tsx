@@ -2,9 +2,15 @@
 
 import { LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { disablePush } from "./pwa/pwa-client";
 
 export function SignOutButton({ variant = "icon" }: { variant?: "icon" | "row" }) {
-  const onClick = () => signOut({ callbackUrl: "/login" });
+  const onClick = async () => {
+    // Nobody is signed in here any more, so this browser must stop receiving
+    // that person's notifications. Don't let a slow push service block sign-out.
+    await Promise.race([disablePush().catch(() => {}), new Promise((r) => setTimeout(r, 1500))]);
+    await signOut({ callbackUrl: "/login" });
+  };
   if (variant === "row") {
     return (
       <button
